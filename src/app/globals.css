@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+
+  --color-soko-ink: #17191c;
+  --color-soko-green: #243447;
+  --color-soko-green-2: #3a5166;
+  --color-soko-lime: #e8dcc8;
+  --color-soko-cream: #f7f5ef;
+  --color-soko-line: #dddcd5;
+  --color-soko-muted: #6b7280;
+  --color-soko-amber: #d88a32;
+  --color-soko-dark: #12161c;
+  --color-soko-page: #fbfaf7;
+  --color-soko-sidebar: #1a222c;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply m-0 bg-soko-page text-soko-ink;
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+
+  button,
+  a {
+    @apply cursor-pointer;
+  }
+
+  button {
+    color: inherit;
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+}
