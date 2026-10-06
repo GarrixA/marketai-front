@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   getMarketplaceState,
+  seedMarketplace,
   subscribeMarketplace,
 } from "@/lib/marketplaceStore";
 import type { MarketplaceState } from "@/lib/marketplaceTypes";
@@ -16,7 +17,7 @@ import type { MarketplaceState } from "@/lib/marketplaceTypes";
 const MarketplaceContext = createContext<MarketplaceState | null>(null);
 
 export function MarketplaceProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<MarketplaceState>(() => getMarketplaceState());
+  const [state, setState] = useState<MarketplaceState>(() => seedMarketplace());
 
   useEffect(() => {
     setState(getMarketplaceState());

@@ -376,7 +376,7 @@ export const seedMarketplace = (): MarketplaceState => ({
       notes: "Weekly supply preferred",
       status: "requested",
       transportQuotes: [],
-      createdAt: new Date().toISOString(),
+      createdAt: "2026-10-05T08:00:00.000Z",
     },
     {
       id: "deal-2",
@@ -397,7 +397,7 @@ export const seedMarketplace = (): MarketplaceState => ({
       offerPrice: 3750,
       pickupLocation: "Musanze",
       transportQuotes: [],
-      createdAt: new Date().toISOString(),
+      createdAt: "2026-10-04T10:30:00.000Z",
     },
   ],
 });
