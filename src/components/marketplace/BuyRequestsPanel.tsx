@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 import { Icon, btn } from "@/lib/ui";
-import { createBuyRequest, formatRwf } from "@/lib/marketplaceStore";
+import {
+  createBuyRequest,
+  formatRwf,
+  isDealForSupplier,
+} from "@/lib/marketplaceStore";
 import { waitForAction } from "@/lib/actionDelay";
 import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
+import { ConfirmDealForm } from "@/components/marketplace/ConfirmDealForm";
 import {
   EmptyState,
   Field,
@@ -20,7 +25,7 @@ import { ActionOverlay, ButtonLoader } from "@/components/ActionLoader";
 import { getSession } from "@/lib/session";
 
 export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
-  const { deals } = useMarketplace();
+  const { deals, inventory } = useMarketplace();
   const session = getSession();
   const email = session?.email ?? "";
 
@@ -36,11 +41,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
   const list =
     mode === "mine"
       ? deals.filter((d) => d.buyerEmail === email)
-      : deals.filter(
-          (d) =>
-            d.buyerEmail !== email &&
-            (d.status === "requested" || d.supplierEmail === email)
-        );
+      : deals.filter((d) => isDealForSupplier(d, email, inventory));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +67,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
       kind: "buy",
       title: "Buy request sent",
       message:
-        "Suppliers can now review your request and confirm available quantity.",
+        "Suppliers can now review your request and confirm or reject it.",
       details: [
         product,
         `${qty} trays · needed by ${date}`,
@@ -91,13 +92,26 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                 onSubmit={submit}
               >
                 <Field label="Product">
-                  <input
+                  <select
                     className={fieldClass}
                     value={product}
                     onChange={(e) => setProduct(e.target.value)}
                     required
                     disabled={loading}
-                  />
+                  >
+                    {[
+                      "Fresh eggs · Large",
+                      "Fresh eggs · Medium",
+                      "Fresh eggs · Small",
+                      "Fresh eggs · Mixed",
+                      "Fresh eggs · Organic Large",
+                      "Fresh eggs · Free-range",
+                    ].map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
                 <Field label="Quantity (trays)">
                   <input
@@ -169,11 +183,11 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
         ) : (
           <Panel
             title="How confirmation works"
-            subtitle="Confirm only the quantity you can supply."
+            subtitle="Confirm or reject requests for your listings only."
           >
             <ol className="m-0 list-decimal space-y-3 pl-4 text-xs text-soko-muted">
-              <li>Buyer publishes a request with product and quantity.</li>
-              <li>You confirm available trays and your offer price.</li>
+              <li>Buyers request stock from your product listings.</li>
+              <li>Confirm available trays and your offer price, or reject.</li>
               <li>Buyer pays against the confirmed deal.</li>
               <li>You request transport once payment shows on the deal.</li>
             </ol>
@@ -185,11 +199,17 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
           subtitle={
             mode === "mine"
               ? "Track supplier replies and payment."
-              : "Respond with the quantity you can fulfill."
+              : "Only requests for your products — confirm or reject each one."
           }
         >
           {list.length === 0 ? (
-            <EmptyState message="No buy requests yet." />
+            <EmptyState
+              message={
+                mode === "mine"
+                  ? "No buy requests yet."
+                  : "No requests for your products yet."
+              }
+            />
           ) : (
             <div className="flex flex-col gap-3">
               {list.map((deal) => (
@@ -204,7 +224,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                       </strong>
                       <small className="text-[0.5625rem] text-soko-muted">
                         {mode === "mine"
-                          ? `To suppliers · ${deal.deliveryLocation}`
+                          ? `${deal.supplierName ?? "To suppliers"} · ${deal.deliveryLocation}`
                           : `${deal.buyerBusiness} · ${deal.deliveryLocation}`}
                       </small>
                     </div>
@@ -232,6 +252,9 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                       {formatRwf(deal.offerPrice ?? 0)}
                       {deal.supplierName ? ` · ${deal.supplierName}` : ""}
                     </p>
+                  ) : null}
+                  {mode === "incoming" && deal.status === "requested" ? (
+                    <ConfirmDealForm deal={deal} />
                   ) : null}
                 </article>
               ))}

@@ -7,6 +7,7 @@ import { dealStatusLabel } from "@/lib/marketplaceStore";
 const tone: Record<Deal["status"], string> = {
   requested: "bg-[#fbebd8] text-[#9a5b18]",
   confirmed: "bg-[#e8eef8] text-[#2f4f8a]",
+  rejected: "bg-[#fde8e8] text-[#b42318]",
   paid: "bg-[#e8edf3] text-[#3a5166]",
   transport_open: "bg-[#f3ece2] text-[#7a5a2a]",
   transport_quoted: "bg-[#e8eef8] text-[#2f4f8a]",

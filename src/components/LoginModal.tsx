@@ -11,10 +11,9 @@ import { authenticateMockUser, type MockUser } from "@/lib/mockUsers";
 type LoginModalProps = {
   onClose: () => void;
   onSuccess: (user: MockUser) => void;
-  onRegister: () => void;
 };
 
-export function LoginModal({ onClose, onSuccess, onRegister }: LoginModalProps) {
+export function LoginModal({ onClose, onSuccess }: LoginModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -127,18 +126,6 @@ export function LoginModal({ onClose, onSuccess, onRegister }: LoginModalProps) 
             )}
           </button>
         </form>
-
-        <p className="mt-5 text-center text-[0.6875rem] text-soko-muted">
-          Don&apos;t have an account?{" "}
-          <button
-            type="button"
-            className={`${btn.text} px-0 py-0 text-soko-green`}
-            onClick={onRegister}
-            disabled={loading}
-          >
-            Register
-          </button>
-        </p>
       </div>
     </div>
   );

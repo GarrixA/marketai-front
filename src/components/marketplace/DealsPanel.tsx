@@ -3,91 +3,22 @@
 import { useState, type ReactNode } from "react";
 import { Icon, btn } from "@/lib/ui";
 import {
-  confirmDealQuantity,
   formatRwf,
+  isDealForSupplier,
   payDeal,
   requestTransport,
   acceptTransportQuote,
 } from "@/lib/marketplaceStore";
 import { waitForAction } from "@/lib/actionDelay";
 import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
+import { ConfirmDealForm } from "@/components/marketplace/ConfirmDealForm";
 import {
   EmptyState,
-  Field,
   Panel,
   StatusBadge,
-  fieldClass,
 } from "@/components/marketplace/uiBits";
 import { ButtonLoader } from "@/components/ActionLoader";
 import { getSession } from "@/lib/session";
-import type { Deal } from "@/lib/marketplaceTypes";
-
-function ConfirmForm({ deal }: { deal: Deal }) {
-  const session = getSession();
-  const [qty, setQty] = useState(String(deal.quantity));
-  const [price, setPrice] = useState(String(deal.targetPrice || 4000));
-  const [pickup, setPickup] = useState(
-    session?.businessName.includes("Hub")
-      ? "Musanze Aggregator Depot"
-      : "Musanze"
-  );
-  const [loading, setLoading] = useState(false);
-
-  return (
-    <form
-      className="mt-3 grid grid-cols-3 gap-2 max-sm:grid-cols-1"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (!session || loading) return;
-        setLoading(true);
-        await waitForAction();
-        confirmDealQuantity({
-          dealId: deal.id,
-          supplierEmail: session.email,
-          supplierName: session.businessName,
-          confirmedQty: Number(qty) || 0,
-          offerPrice: Number(price) || 0,
-          pickupLocation: pickup,
-        });
-        setLoading(false);
-      }}
-    >
-      <Field label="Confirm qty">
-        <input
-          className={fieldClass}
-          type="number"
-          min={1}
-          value={qty}
-          onChange={(e) => setQty(e.target.value)}
-          disabled={loading}
-        />
-      </Field>
-      <Field label="Offer / tray">
-        <input
-          className={fieldClass}
-          type="number"
-          min={0}
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          disabled={loading}
-        />
-      </Field>
-      <Field label="Pickup location">
-        <input
-          className={fieldClass}
-          value={pickup}
-          onChange={(e) => setPickup(e.target.value)}
-          disabled={loading}
-        />
-      </Field>
-      <div className="col-span-full">
-        <button type="submit" className={btn.sellCompact} disabled={loading}>
-          {loading ? <ButtonLoader label="Confirming…" /> : "Confirm quantity"}
-        </button>
-      </div>
-    </form>
-  );
-}
 
 function BusyButton({
   className,
@@ -124,18 +55,14 @@ export function DealsPanel({
 }: {
   perspective: "buyer" | "supplier";
 }) {
-  const { deals } = useMarketplace();
+  const { deals, inventory } = useMarketplace();
   const session = getSession();
   const email = session?.email ?? "";
 
   const actionable =
     perspective === "buyer"
       ? deals.filter((d) => d.buyerEmail === email)
-      : deals.filter(
-          (d) =>
-            (d.status === "requested" && d.buyerEmail !== email) ||
-            d.supplierEmail === email
-        );
+      : deals.filter((d) => isDealForSupplier(d, email, inventory));
 
   return (
     <Panel
@@ -143,7 +70,7 @@ export function DealsPanel({
       subtitle={
         perspective === "buyer"
           ? "Pay once the supplier confirms quantity."
-          : "Confirm stock, watch payments, then request transport."
+          : "Confirm or reject requests for your products, then manage transport."
       }
     >
       {actionable.length === 0 ? (
@@ -202,10 +129,15 @@ export function DealsPanel({
                     {deal.paidAt
                       ? ` · ${new Date(deal.paidAt).toLocaleString()}`
                       : ""}
+                    {deal.status === "transport_open" ? (
+                      <span className="mt-1 block">
+                        Transport notice sent to logistics.
+                      </span>
+                    ) : null}
                   </div>
                 ) : null}
 
-                {canConfirm ? <ConfirmForm deal={deal} /> : null}
+                {canConfirm ? <ConfirmDealForm deal={deal} /> : null}
 
                 {canPay ? (
                   <div className="mt-3 flex flex-wrap items-center gap-3">

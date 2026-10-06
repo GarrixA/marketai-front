@@ -9,6 +9,8 @@ import {
 } from "react";
 import {
   getMarketplaceState,
+  MARKETPLACE_STORAGE_KEY,
+  reloadMarketplaceFromStorage,
   seedMarketplace,
   subscribeMarketplace,
 } from "@/lib/marketplaceStore";
@@ -17,11 +19,22 @@ import type { MarketplaceState } from "@/lib/marketplaceTypes";
 const MarketplaceContext = createContext<MarketplaceState | null>(null);
 
 export function MarketplaceProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<MarketplaceState>(() => seedMarketplace());
+  const [state, setState] = useState<MarketplaceState>(() =>
+    typeof window === "undefined" ? seedMarketplace() : getMarketplaceState()
+  );
 
   useEffect(() => {
     setState(getMarketplaceState());
-    return subscribeMarketplace(() => setState(getMarketplaceState()));
+    const unsub = subscribeMarketplace(() => setState(getMarketplaceState()));
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== MARKETPLACE_STORAGE_KEY) return;
+      setState(reloadMarketplaceFromStorage());
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      unsub();
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   return (

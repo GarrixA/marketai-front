@@ -1,6 +1,7 @@
 export type DealStatus =
   | "requested"
   | "confirmed"
+  | "rejected"
   | "paid"
   | "transport_open"
   | "transport_quoted"
@@ -25,6 +26,7 @@ export type InventoryItem = {
   completionRate: number;
   rating: number;
   responseMins: number;
+  publishedAt: string;
 };
 
 export type TransportQuote = {
@@ -57,12 +59,30 @@ export type Deal = {
   paidAt?: string;
   pickupLocation?: string;
   transportFee?: number;
+  transportOpenedAt?: string;
   transportQuotes: TransportQuote[];
   acceptedQuoteId?: string;
   createdAt: string;
 };
 
+export type SellOffer = {
+  id: string;
+  listingId: string;
+  ownerEmail: string;
+  ownerName: string;
+  ownerRole: SellerRole;
+  product: string;
+  grade: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  location: string;
+  minOrder: number;
+  publishedAt: string;
+};
+
 export type MarketplaceState = {
   inventory: InventoryItem[];
   deals: Deal[];
+  sellOffers: SellOffer[];
 };

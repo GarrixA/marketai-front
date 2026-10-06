@@ -4,6 +4,7 @@ import { MvpOverview } from "@/components/marketplace/MvpOverview";
 import { BuyRequestsPanel } from "@/components/marketplace/BuyRequestsPanel";
 import { DealsPanel } from "@/components/marketplace/DealsPanel";
 import { ProductMarketPanel } from "@/components/marketplace/ProductMarketPanel";
+import { SellOffersPanel } from "@/components/marketplace/SellOffersPanel";
 import { TransportJobsPanel } from "@/components/marketplace/TransportJobsPanel";
 import type { DashboardRole } from "@/lib/session";
 import { pathForSection } from "@/lib/dashboardNav";
@@ -21,6 +22,10 @@ export function OverviewPageContent({ role }: { role: DashboardRole }) {
 
 export function ProductsPageContent({ role }: { role: DashboardRole }) {
   return <ProductMarketPanel role={role} />;
+}
+
+export function SellOffersPageContent() {
+  return <SellOffersPanel />;
 }
 
 export function BuyRequestsPageContent({ role }: { role: DashboardRole }) {

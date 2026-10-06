@@ -13,6 +13,10 @@ import {
 } from "@/components/marketplace/TradeResultModal";
 // import { MOCK_USERS } from "@/lib/mockUsers";
 import { formatRwf } from "@/lib/marketplaceStore";
+import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
+import { NavBadge } from "@/components/dashboard/NavBadge";
+import { getNavBadges } from "@/lib/navBadges";
+import { subscribeSellOffersSeen } from "@/lib/sellOffersSeen";
 import {
   SECTION_ICON,
   SECTION_PATH,
@@ -63,6 +67,8 @@ function SidebarNav({
 }) {
   const router = useRouter();
   const session = getSession();
+  const { deals, inventory, sellOffers } = useMarketplace();
+  const [, setSeenTick] = useState(0);
   const displayName = session?.name ?? "Aline Kabera";
   const initials = displayName
     .split(" ")
@@ -70,6 +76,16 @@ function SidebarNav({
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  useEffect(() => subscribeSellOffersSeen(() => setSeenTick((n) => n + 1)), []);
+
+  const badges = getNavBadges({
+    role,
+    email: session?.email ?? "",
+    deals,
+    inventory,
+    sellOffers,
+  });
 
   const go = (section: DashboardSection) => {
     router.push(SECTION_PATH[section]);
@@ -93,24 +109,46 @@ function SidebarNav({
         </span>
       </div>
       <nav className="flex flex-col gap-0.5 overflow-auto">
-        {navByRole[role].map((item) => (
-          <button
-            key={item}
-            type="button"
-            className={`flex items-center gap-3 rounded-1.25 border-0 px-2.75 py-2.5 text-left text-xs ${
-              active === item
-                ? "bg-[#f5f5f1] text-soko-ink"
-                : "bg-transparent text-soko-muted hover:bg-[#f5f5f1] hover:text-soko-ink"
-            }`}
-            onClick={() => go(item)}
-          >
-            <Icon
-              name={SECTION_ICON[item]}
-              className="min-w-4.5 shrink-0"
-            />
-            <span>{item}</span>
-          </button>
-        ))}
+        {navByRole[role].map((item) => {
+          const count = badges[item] ?? 0;
+          const isActive = active === item;
+          return (
+            <motion.button
+              key={item}
+              type="button"
+              className={`flex w-full items-center gap-3 rounded-1.25 border-0 px-2.75 py-2.5 text-left text-xs ${
+                isActive
+                  ? "bg-[#f5f5f1] text-soko-ink"
+                  : "bg-transparent text-soko-muted hover:bg-[#f5f5f1] hover:text-soko-ink"
+              }`}
+              onClick={() => go(item)}
+              whileHover={count > 0 ? { x: 2 } : undefined}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 420, damping: 28 }}
+            >
+              <span className="relative shrink-0">
+                <Icon
+                  name={SECTION_ICON[item]}
+                  className="min-w-4.5 shrink-0"
+                />
+                {count > 0 && !isActive ? (
+                  <motion.span
+                    className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-[#ef4444]"
+                    animate={{ scale: [1, 1.35, 1], opacity: [1, 0.7, 1] }}
+                    transition={{
+                      duration: 1.4,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    aria-hidden
+                  />
+                ) : null}
+              </span>
+              <span className="min-w-0 flex-1 truncate">{item}</span>
+              <NavBadge count={isActive ? 0 : count} />
+            </motion.button>
+          );
+        })}
       </nav>
       <button
         type="button"
@@ -213,6 +251,60 @@ function MobileMenuModal({
   );
 }
 
+function MobileMenuButton({
+  role,
+  onOpen,
+}: {
+  role: DashboardRole;
+  onOpen: () => void;
+}) {
+  const session = getSession();
+  const { deals, inventory, sellOffers } = useMarketplace();
+  const [, setSeenTick] = useState(0);
+
+  useEffect(() => subscribeSellOffersSeen(() => setSeenTick((n) => n + 1)), []);
+
+  const badges = getNavBadges({
+    role,
+    email: session?.email ?? "",
+    deals,
+    inventory,
+    sellOffers,
+  });
+  const pending = Object.entries(badges)
+    .filter(([section]) => section !== "Overview")
+    .reduce((sum, [, n]) => sum + (n ?? 0), 0);
+
+  return (
+    <motion.button
+      type="button"
+      className="relative grid h-9 w-9 place-items-center rounded-md border border-[#e5e4df] bg-white md:hidden"
+      onClick={onOpen}
+      aria-label={
+        pending > 0 ? `Open menu, ${pending} pending` : "Open menu"
+      }
+      whileTap={{ scale: 0.94 }}
+    >
+      <Icon name="menu" />
+      {pending > 0 ? (
+        <motion.span
+          className="absolute -top-1 -right-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-[#ef4444] px-1 text-[0.5rem] font-extrabold text-white"
+          initial={{ scale: 0 }}
+          animate={{ scale: [1, 1.15, 1] }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            repeatDelay: 1,
+            ease: "easeInOut",
+          }}
+        >
+          {pending > 9 ? "9+" : pending}
+        </motion.span>
+      ) : null}
+    </motion.button>
+  );
+}
+
 export function DashboardShell({
   role,
   children,
@@ -266,6 +358,7 @@ export function DashboardShell({
       return;
     }
     if (role === "logistics") router.push(pathForSection("Transport"));
+    else if (role === "buyer") router.push(pathForSection("Sell Offers"));
     else router.push(pathForSection("Products"));
   };
 
@@ -283,14 +376,7 @@ export function DashboardShell({
 
         <div className="w-full md:ml-60 md:w-[calc(100%-240px)]">
           <header className="sticky top-0 z-5 flex h-17 items-center gap-3 border-b border-[#dddeda] bg-white px-4 sm:px-6 md:px-8">
-            <button
-              type="button"
-              className="grid h-9 w-9 place-items-center rounded-md border border-[#e5e4df] bg-white md:hidden"
-              onClick={() => setMenuOpen(true)}
-              aria-label="Open menu"
-            >
-              <Icon name="menu" />
-            </button>
+            <MobileMenuButton role={role} onOpen={() => setMenuOpen(true)} />
             <div className="min-w-0">
               <span className="block text-[0.5625rem] text-soko-muted">
                 Soko workspace
@@ -331,7 +417,9 @@ export function DashboardShell({
                         : role === "supplier"
                           ? "Your sell listings — tap Sell to update stock."
                           : "Buy eggs from suppliers and aggregators."
-                      : `Manage ${active.toLowerCase()} for the demo marketplace.`}
+                      : active === "Sell Offers"
+                        ? "New listings from suppliers and aggregators — review and buy."
+                        : `Manage ${active.toLowerCase()} for the demo marketplace.`}
                 </span>
               </div>
               <button
@@ -349,7 +437,9 @@ export function DashboardShell({
                   ? "List for sale"
                   : role === "logistics"
                     ? "View transport"
-                    : "Browse products"}{" "}
+                    : role === "buyer"
+                      ? "View sell offers"
+                      : "Browse products"}{" "}
                 <Icon name="arrow" />
               </button>
             </div>
@@ -381,8 +471,8 @@ export function DashboardShell({
               ? "Sell order confirmed"
               : "Listing published",
             message: result.isUpdate
-              ? "Your sell offer has been updated and is visible to buyers."
-              : "Your product is now live for buyers on the marketplace.",
+              ? "Your sell offer is live for buyers under Sell Offers."
+              : "Your product is now live for buyers under Sell Offers.",
             details: [
               `${result.product} · ${result.grade}`,
               `${result.quantity} trays @ ${formatRwf(result.pricePerUnit)}/tray`,

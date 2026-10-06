@@ -4,16 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Icon,
-  Logo,
   PublicNav,
   SearchBar,
   SiteFooter,
   btn,
 } from "@/lib/ui";
-import { ButtonLoader } from "@/components/ActionLoader";
 import { LoginModal } from "@/components/LoginModal";
 import { ProductCard } from "@/components/ProductCard";
-import { waitForAction } from "@/lib/actionDelay";
 import {
   MarketplaceProvider,
   useMarketplace,
@@ -29,14 +26,10 @@ import {
   searchListings,
   type ListingSearchFilters,
 } from "@/lib/searchListings";
-import {
-  dashboardRoleFromRegistrationIndex,
-  setSession,
-  type DashboardRole,
-} from "@/lib/session";
+import { setSession } from "@/lib/session";
 
 const photos = {
-  hero: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1600&q=85",
+  hero: "/soko-eggs-hero.jpg",
 };
 
 const PAGE_SIZE = 6;
@@ -45,11 +38,9 @@ const sectionKicker =
   "text-[0.6875rem] font-extrabold tracking-[0.1375rem] text-soko-green-2 uppercase";
 
 function Marketplace({
-  onRegister,
   onLogin,
   onHome,
 }: {
-  onRegister: () => void;
   onLogin: () => void;
   onHome: () => void;
 }) {
@@ -103,7 +94,7 @@ function Marketplace({
         />
       </div>
 
-      <PublicNav onRegister={onRegister} onLogin={onLogin} onHome={onHome} />
+      <PublicNav onLogin={onLogin} onHome={onHome} />
 
       <main className="relative">
         <section className="relative z-1 px-0 pt-12 pb-28 text-white max-md:pt-8 max-md:pb-32 max-sm:pt-6 max-sm:pb-28">
@@ -125,15 +116,7 @@ function Marketplace({
                 Discover verified suppliers, compare prices, place orders, and
                 coordinate delivery—all in one trusted marketplace.
               </p>
-              <div className="my-7.5 flex flex-wrap gap-3">
-                <a href="#marketplace" className={btn.buy}>
-                  Browse market <Icon name="arrow" />
-                </a>
-                <button className={btn.ghost} onClick={onRegister}>
-                  Become a supplier
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-6 text-xs text-[#c5ccd4]">
+              <div className="mt-7.5 flex flex-wrap gap-6 text-xs text-[#c5ccd4]">
                 <span className="flex items-center gap-1.5">
                   <Icon
                     name="check"
@@ -444,351 +427,35 @@ function ListingDetail({
 }
 
 
-function PasswordField({
-  label,
-  placeholder,
-  value,
-  onChange,
-  visible,
-  onToggleVisible,
-}: {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  visible: boolean;
-  onToggleVisible: () => void;
-}) {
-  return (
-    <label className="text-[0.625rem] font-bold">
-      {label}
-      <span className="relative mt-1.5 block">
-        <input
-          type={visible ? "text" : "password"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="block w-full rounded-1.25 border border-[#d8d9d3] p-2.75 pr-10 text-xs outline-soko-green"
-          placeholder={placeholder}
-        />
-        <button
-          type="button"
-          className="absolute top-1/2 right-2.5 grid -translate-y-1/2 place-items-center border-0 bg-transparent p-0.5 text-soko-muted hover:text-soko-green"
-          onClick={onToggleVisible}
-          aria-label={visible ? `Hide ${label}` : `Show ${label}`}
-        >
-          <Icon name={visible ? "eyeOff" : "eye"} size={16} />
-        </button>
-      </span>
-    </label>
-  );
-}
-
-function AuthModal({
-  onClose,
-  onComplete,
-}: {
-  onClose: () => void;
-  onComplete: (role: DashboardRole) => void;
-}) {
-  const [step, setStep] = useState(1);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(0);
-  const [verifying, setVerifying] = useState(false);
-
-  const accountRoles = [
-    ["Buyer", "Source and purchase goods"],
-    ["Seller / Supplier", "List and fulfil inventory"],
-    ["Aggregator", "Buy and sell from one workspace"],
-    ["Logistics Provider", "Deliver marketplace orders"],
-  ] as const;
-
-  return (
-    <div className="fixed inset-0 z-100 grid place-items-center bg-[#08141cb8] p-6 backdrop-blur-sm">
-      <div className="relative max-h-[94vh] w-full max-w-152.5 overflow-auto rounded-2.5 bg-white px-10.5 py-9 max-sm:px-5 max-sm:py-7.5">
-        <button
-          type="button"
-          className="absolute top-4 right-4 z-2 grid h-9 w-9 place-items-center rounded-full border border-[#ddd] bg-white disabled:opacity-50"
-          onClick={onClose}
-          disabled={verifying}
-          aria-label="Close registration"
-        >
-          <Icon name="close" />
-        </button>
-        <div className="mb-6">
-          <Logo />
-        </div>
-        <div className="mb-7 flex gap-1.5">
-          {[1, 2, 3].map((n) => (
-            <span
-              key={n}
-              className={`h-0.75 flex-1 ${step >= n ? "bg-soko-green" : "bg-[#e2e2dc]"}`}
-            />
-          ))}
-        </div>
-        {step === 1 && (
-          <>
-            <span className={sectionKicker}>CREATE YOUR ACCOUNT</span>
-            <h2 className="my-2 font-display text-[1.875rem] font-bold">
-              Start trading with confidence.
-            </h2>
-            <p className="mt-0 text-xs text-soko-muted">
-              Join Rwanda&apos;s connected supply network.
-            </p>
-            <div className="my-6 grid grid-cols-2 gap-3.5 max-sm:grid-cols-1">
-              <label className="text-[0.625rem] font-bold">
-                Full name
-                <input
-                  className="mt-1.5 block w-full rounded-1.25 border border-[#d8d9d3] p-2.75 text-xs outline-soko-green"
-                  placeholder="Your full name"
-                />
-              </label>
-              <label className="text-[0.625rem] font-bold">
-                Business name
-                <input
-                  className="mt-1.5 block w-full rounded-1.25 border border-[#d8d9d3] p-2.75 text-xs outline-soko-green"
-                  placeholder="Company or farm name"
-                />
-              </label>
-              <label className="text-[0.625rem] font-bold">
-                Email address
-                <input
-                  type="email"
-                  className="mt-1.5 block w-full rounded-1.25 border border-[#d8d9d3] p-2.75 text-xs outline-soko-green"
-                  placeholder="name@company.rw"
-                />
-              </label>
-              <label className="text-[0.625rem] font-bold">
-                Phone number
-                <input
-                  type="tel"
-                  className="mt-1.5 block w-full rounded-1.25 border border-[#d8d9d3] p-2.75 text-xs outline-soko-green"
-                  placeholder="+250 7xx xxx xxx"
-                />
-              </label>
-              <PasswordField
-                label="Password"
-                placeholder="At least 8 characters"
-                value={password}
-                onChange={setPassword}
-                visible={showPassword}
-                onToggleVisible={() => setShowPassword((v) => !v)}
-              />
-              <PasswordField
-                label="Confirm password"
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChange={setConfirmPassword}
-                visible={showConfirmPassword}
-                onToggleVisible={() => setShowConfirmPassword((v) => !v)}
-              />
-            </div>
-            <button
-              type="button"
-              className={`${btn.primaryCompact} w-full sm:px-5.5 sm:py-3.5`}
-              onClick={() => setStep(2)}
-            >
-              Continue to account type <Icon name="arrow" />
-            </button>
-          </>
-        )}
-        {step === 2 && (
-          <>
-            <button
-              type="button"
-              className={`${btn.text} mb-2 inline-flex items-center gap-1.5 px-0 text-soko-muted hover:text-soko-green`}
-              onClick={() => setStep(1)}
-            >
-              <Icon name="arrow" className="rotate-180" size={16} />
-              Back
-            </button>
-            <span className={sectionKicker}>CHOOSE YOUR ROLE</span>
-            <h2 className="my-2 font-display text-[1.875rem] font-bold">
-              How will you use Soko?
-            </h2>
-            <p className="mt-0 text-xs text-soko-muted">
-              Your workspace and tools will adapt to this choice.
-            </p>
-            <div className="my-6 grid grid-cols-2 gap-2.5 max-sm:grid-cols-1">
-              {accountRoles.map((r, i) => {
-                const selected = selectedRole === i;
-                return (
-                  <button
-                    key={r[0]}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => setSelectedRole(i)}
-                    className={`relative flex items-center gap-2.5 rounded-md border p-3.5 text-left ${
-                      selected
-                        ? "border-soko-green bg-[#eef1f5]"
-                        : "border-[#dadbd5] bg-white"
-                    }`}
-                  >
-                    <span className="text-soko-green">
-                      <Icon name={["box", "users", "grid", "truck"][i]} />
-                    </span>
-                    <div>
-                      <strong className="block text-[0.6875rem]">{r[0]}</strong>
-                      <small className="mt-0.5 block text-[0.5rem] text-soko-muted">
-                        {r[1]}
-                      </small>
-                    </div>
-                    <i
-                      className={`ml-auto grid rounded-full p-0.5 ${
-                        selected ? "bg-soko-green text-white" : "hidden"
-                      }`}
-                    >
-                      <Icon name="check" size={14} />
-                    </i>
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              type="button"
-              className={`${btn.primaryCompact} w-full sm:px-5.5 sm:py-3.5`}
-              onClick={() => setStep(3)}
-            >
-              Create account <Icon name="arrow" />
-            </button>
-          </>
-        )}
-        {step === 3 && (
-          <div>
-            <button
-              type="button"
-              className={`${btn.text} mb-2 inline-flex items-center gap-1.5 px-0 text-soko-muted hover:text-soko-green`}
-              onClick={() => setStep(2)}
-            >
-              <Icon name="arrow" className="rotate-180" size={16} />
-              Back
-            </button>
-            <div className="text-center">
-              <span className="mx-auto my-1 mb-5.5 grid h-13.75 w-13.75 place-items-center rounded-full bg-[#e8ecf0] text-soko-green">
-                <Icon name="check" size={26} />
-              </span>
-              <span className={sectionKicker}>VERIFY YOUR EMAIL</span>
-              <h2 className="my-2 font-display text-[1.875rem] font-bold">
-                Check your inbox.
-              </h2>
-              <p className="text-xs text-soko-muted">
-                We sent a 6-digit code to <strong>name@company.rw</strong>
-              </p>
-              <div className="my-6 flex justify-center gap-2">
-                {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <input
-                    key={n}
-                    maxLength={1}
-                    aria-label={`OTP digit ${n}`}
-                    className="h-13.5 w-12 rounded-1.25 border border-[#cfd2cc] text-center text-xl max-sm:h-11.25 max-sm:w-9.5 disabled:opacity-60"
-                    disabled={verifying}
-                  />
-                ))}
-              </div>
-              <button
-                type="button"
-                className={`${btn.primaryCompact} w-full sm:px-5.5 sm:py-3.5`}
-                disabled={verifying}
-                aria-busy={verifying}
-                onClick={async () => {
-                  if (verifying) return;
-                  setVerifying(true);
-                  await waitForAction();
-                  onComplete(
-                    dashboardRoleFromRegistrationIndex(selectedRole)
-                  );
-                }}
-              >
-                {verifying ? (
-                  <ButtonLoader label="Verifying…" />
-                ) : (
-                  <>
-                    Verify and open dashboard <Icon name="arrow" />
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`${btn.text} mt-1.5 text-soko-green`}
-                disabled={verifying}
-              >
-                Resend code
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function SokoApp() {
   const router = useRouter();
-  const [authOpen, setAuthOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
 
-  const enterDashboard = (user: {
-    role: DashboardRole;
-    name: string;
-    email: string;
-    businessName: string;
-  }) => {
-    setSession(user);
-    setAuthOpen(false);
-    setLoginOpen(false);
-    router.push("/dashboard");
-  };
-
-  const completeRegistration = (role: DashboardRole) => {
-    enterDashboard({
-      role,
-      name: "New trader",
-      email: "name@company.rw",
-      businessName: "My business",
-    });
-  };
-
   const completeLogin = (user: MockUser) => {
-    enterDashboard({
+    setSession({
       role: user.role,
       name: user.name,
       email: user.email,
       businessName: user.businessName,
     });
+    setLoginOpen(false);
+    router.push("/dashboard");
   };
 
   return (
     <MarketplaceProvider>
       <>
-      <Marketplace
-        onRegister={() => {
-          setLoginOpen(false);
-          setAuthOpen(true);
-        }}
-        onLogin={() => {
-          setAuthOpen(false);
-          setLoginOpen(true);
-        }}
-        onHome={() => router.push("/")}
-      />
-      {authOpen && (
-        <AuthModal
-          onClose={() => setAuthOpen(false)}
-          onComplete={completeRegistration}
+        <Marketplace
+          onLogin={() => setLoginOpen(true)}
+          onHome={() => router.push("/")}
         />
-      )}
-      {loginOpen && (
-        <LoginModal
-          onClose={() => setLoginOpen(false)}
-          onSuccess={completeLogin}
-          onRegister={() => {
-            setLoginOpen(false);
-            setAuthOpen(true);
-          }}
-        />
-      )}
+        {loginOpen && (
+          <LoginModal
+            onClose={() => setLoginOpen(false)}
+            onSuccess={completeLogin}
+          />
+        )}
       </>
     </MarketplaceProvider>
   );

@@ -299,7 +299,7 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
       <div className="flex flex-wrap gap-2">
         <input
           className={`${fieldClass} max-w-55`}
-          placeholder="Search seller, product, location…"
+          placeholder="Search seller, egg grade, location…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -377,8 +377,8 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
               ? "Sell order confirmed"
               : "Listing published",
             message: result.isUpdate
-              ? "Your sell offer has been updated and is visible to buyers."
-              : "Your product is now live for buyers on the marketplace.",
+              ? "Your sell offer has been updated and is visible under Sell Offers."
+              : "Your sell offer is now live for buyers under Sell Offers.",
             details: [
               `${result.product} · ${result.grade}`,
               `${result.quantity} trays @ ${formatRwf(result.pricePerUnit)}/tray`,

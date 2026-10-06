@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Icon, btn } from "@/lib/ui";
-import { upsertInventory } from "@/lib/marketplaceStore";
+import { upsertInventory, publishSellOffer } from "@/lib/marketplaceStore";
 import { waitForAction } from "@/lib/actionDelay";
 import { Field, fieldClass } from "@/components/marketplace/uiBits";
 import { ActionOverlay, ButtonLoader } from "@/components/ActionLoader";
@@ -39,7 +39,7 @@ export function RecordStockModal({
   initial = null,
 }: RecordStockModalProps) {
   const session = getSession();
-  const [product, setProduct] = useState(initial?.product ?? "Fresh eggs");
+  const [product] = useState("Fresh eggs");
   const [grade, setGrade] = useState(initial?.grade ?? "Large");
   const [quantity, setQuantity] = useState(String(initial?.quantity ?? 100));
   const [price, setPrice] = useState(String(initial?.pricePerUnit ?? 4000));
@@ -72,7 +72,7 @@ export function RecordStockModal({
     const qty = Number(quantity) || 0;
     const pricePerUnit = Number(price) || 0;
 
-    upsertInventory({
+    const listingId = upsertInventory({
       id: initial?.id,
       ownerEmail: session.email,
       ownerName: session.businessName,
@@ -90,6 +90,20 @@ export function RecordStockModal({
       rating: initial?.rating ?? 100,
       responseMins: initial?.responseMins ?? 15,
     });
+
+    publishSellOffer({
+      listingId,
+      ownerEmail: session.email,
+      ownerName: session.businessName,
+      ownerRole,
+      product,
+      grade,
+      quantity: qty,
+      pricePerUnit,
+      location,
+      minOrder: Number(minOrder) || 1,
+    });
+
     setLoading(false);
     onClose();
     onSuccess?.({
@@ -131,11 +145,11 @@ export function RecordStockModal({
         >
           <Field label="Product">
             <input
-              className={fieldClass}
+              className={`${fieldClass} disabled:opacity-80`}
               value={product}
-              onChange={(e) => setProduct(e.target.value)}
-              required
-              disabled={loading}
+              readOnly
+              disabled
+              aria-label="Product (eggs only)"
             />
           </Field>
           <Field label="Grade / size">

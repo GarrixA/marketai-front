@@ -29,7 +29,7 @@ export function TransportJobsPanel() {
     <div className="grid grid-cols-1 gap-4.25">
       <Panel
         title="Transport notices"
-        subtitle="Paid deals waiting for a logistics quote."
+        subtitle="Paid deals waiting for a logistics quote. Updates live when buyers pay."
       >
         {openJobs.length === 0 ? (
           <EmptyState message="No open transport requests right now." />

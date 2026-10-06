@@ -16,7 +16,7 @@ async function signInAs(
   email: string,
   password: string
 ) {
-  await user.click(screen.getByRole("button", { name: "Log in" }));
+  await user.click(screen.getByRole("button", { name: /Log in/i }));
   await user.type(screen.getByPlaceholderText("name@company.rw"), email);
   await user.type(screen.getByPlaceholderText("Enter your password"), password);
   await user.click(screen.getByRole("button", { name: /Sign in/i }));

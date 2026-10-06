@@ -56,8 +56,8 @@ export function SearchBar({
             value={filters.query}
             onChange={(e) => update({ query: e.target.value })}
             className="w-full border-0 bg-transparent text-[0.8125rem] text-[#303b36] outline-none"
-            placeholder="Maize, vegetables, suppliers..."
-            aria-label="Search products and suppliers"
+            placeholder="Eggs, grades, suppliers…"
+            aria-label="Search eggs and suppliers"
           />
         </div>
       </label>

@@ -3,10 +3,12 @@ import type {
   InventoryItem,
   MarketplaceState,
   SellerRole,
+  SellOffer,
   TransportQuote,
 } from "@/lib/marketplaceTypes";
 
-const STORAGE_KEY = "soko_marketplace_demo_v4";
+const STORAGE_KEY = "soko_marketplace_demo_v8";
+export const MARKETPLACE_STORAGE_KEY = STORAGE_KEY;
 
 const SUPPLIER = {
   ownerEmail: "supplier@soko.rw",
@@ -359,6 +361,7 @@ export const seedMarketplace = (): MarketplaceState => ({
   inventory: SEED_LISTINGS.map((row, i) => ({
     id: `inv-${i + 1}`,
     unit: "trays",
+    publishedAt: "2026-10-01T09:00:00.000Z",
     ...row,
   })),
   deals: [
@@ -375,6 +378,10 @@ export const seedMarketplace = (): MarketplaceState => ({
       targetPrice: 4000,
       notes: "Weekly supply preferred",
       status: "requested",
+      listingId: "inv-1",
+      supplierEmail: "supplier@soko.rw",
+      supplierName: "Musanze Growers Co-op",
+      pickupLocation: "Musanze",
       transportQuotes: [],
       createdAt: "2026-10-05T08:00:00.000Z",
     },
@@ -399,7 +406,34 @@ export const seedMarketplace = (): MarketplaceState => ({
       transportQuotes: [],
       createdAt: "2026-10-04T10:30:00.000Z",
     },
+    {
+      id: "deal-3",
+      buyerEmail: "buyer@soko.rw",
+      buyerName: "Aline Kabera",
+      buyerBusiness: "Kigali Fresh Foods",
+      product: "Fresh eggs · Large",
+      quantity: 120,
+      unit: "trays",
+      deliveryLocation: "Kigali",
+      requiredDate: "2026-10-14",
+      targetPrice: 4100,
+      notes: "Paid — needs logistics quote",
+      status: "transport_open",
+      listingId: "inv-2",
+      supplierEmail: "supplier@soko.rw",
+      supplierName: "Musanze Growers Co-op",
+      confirmedQty: 120,
+      offerPrice: 4100,
+      paidAmount: 492000,
+      paidAt: "2026-10-06T08:00:00.000Z",
+      pickupLocation: "Musanze",
+      transportOpenedAt: "2026-10-06T08:05:00.000Z",
+      transportQuotes: [],
+      createdAt: "2026-10-03T12:00:00.000Z",
+    },
   ],
+  // Empty until a supplier/aggregator confirms Sell — then offers appear for buyers.
+  sellOffers: [],
 });
 
 type Listener = () => void;
@@ -415,7 +449,11 @@ function readState(): MarketplaceState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      memoryState = JSON.parse(raw) as MarketplaceState;
+      const parsed = JSON.parse(raw) as MarketplaceState;
+      memoryState = {
+        ...parsed,
+        sellOffers: parsed.sellOffers ?? [],
+      };
       return memoryState;
     }
   } catch {
@@ -432,6 +470,13 @@ function writeState(next: MarketplaceState) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
   listeners.forEach((l) => l());
+}
+
+/** Force re-read from localStorage (e.g. after another tab wrote). */
+export function reloadMarketplaceFromStorage() {
+  if (typeof window === "undefined") return seedMarketplace();
+  memoryState = null;
+  return readState();
 }
 
 export function subscribeMarketplace(listener: Listener) {
@@ -459,6 +504,8 @@ export function dealStatusLabel(status: Deal["status"]) {
       return "Awaiting supplier";
     case "confirmed":
       return "Quantity confirmed";
+    case "rejected":
+      return "Rejected";
     case "paid":
       return "Paid";
     case "transport_open":
@@ -568,6 +615,48 @@ export function confirmDealQuantity(input: {
   });
 }
 
+export function rejectDeal(input: {
+  dealId: string;
+  supplierEmail: string;
+  supplierName: string;
+}) {
+  const state = readState();
+  writeState({
+    ...state,
+    deals: state.deals.map((d) =>
+      d.id === input.dealId && d.status === "requested"
+        ? {
+            ...d,
+            status: "rejected",
+            supplierEmail: input.supplierEmail,
+            supplierName: input.supplierName,
+          }
+        : d
+    ),
+  });
+}
+
+export function isDealForSupplier(
+  deal: Deal,
+  supplierEmail: string,
+  inventory: InventoryItem[]
+) {
+  if (deal.buyerEmail === supplierEmail) return false;
+  if (deal.supplierEmail === supplierEmail) return true;
+
+  const mine = inventory.filter((i) => i.ownerEmail === supplierEmail);
+  if (deal.listingId && mine.some((i) => i.id === deal.listingId)) return true;
+
+  if (!deal.supplierEmail && deal.status === "requested") {
+    return mine.some((i) => {
+      const label = `${i.product} · ${i.grade}`;
+      return deal.product === label || deal.product === i.product;
+    });
+  }
+
+  return false;
+}
+
 export function payDeal(dealId: string) {
   const state = readState();
   const deal = state.deals.find((d) => d.id === dealId);
@@ -598,14 +687,16 @@ export function payDeal(dealId: string) {
   });
 
   writeState({
+    ...state,
     inventory,
     deals: state.deals.map((d) =>
       d.id === dealId
         ? {
             ...d,
-            status: "paid",
+            status: "transport_open",
             paidAmount,
             paidAt: new Date().toISOString(),
+            transportOpenedAt: new Date().toISOString(),
           }
         : d
     ),
@@ -618,7 +709,11 @@ export function requestTransport(dealId: string) {
     ...state,
     deals: state.deals.map((d) =>
       d.id === dealId && d.status === "paid"
-        ? { ...d, status: "transport_open" }
+        ? {
+            ...d,
+            status: "transport_open",
+            transportOpenedAt: new Date().toISOString(),
+          }
         : d
     ),
   });
@@ -677,28 +772,79 @@ export function acceptTransportQuote(dealId: string, logisticsEmail: string) {
 }
 
 export function upsertInventory(
-  item: Omit<InventoryItem, "id"> & { id?: string }
-) {
+  item: Omit<InventoryItem, "id" | "publishedAt"> & {
+    id?: string;
+    publishedAt?: string;
+  }
+): string {
   const state = readState();
+  const publishedAt = new Date().toISOString();
   if (item.id) {
     writeState({
       ...state,
       inventory: state.inventory.map((row) =>
-        row.id === item.id ? { ...row, ...item, id: item.id } : row
+        row.id === item.id
+          ? { ...row, ...item, id: item.id, publishedAt }
+          : row
       ),
     });
-    return;
+    return item.id;
   }
+  const id = uid("inv");
   writeState({
     ...state,
     inventory: [
       {
         ...item,
-        id: uid("inv"),
+        id,
+        publishedAt,
       },
       ...state.inventory,
     ],
   });
+  return id;
+}
+
+/** Publish the confirmed Sell order so buyers see it under Sell Offers. */
+export function publishSellOffer(input: {
+  listingId: string;
+  ownerEmail: string;
+  ownerName: string;
+  ownerRole: SellerRole;
+  product: string;
+  grade: string;
+  quantity: number;
+  pricePerUnit: number;
+  location: string;
+  minOrder: number;
+}): SellOffer {
+  const state = readState();
+  const publishedAt = new Date().toISOString();
+  const existing = state.sellOffers.find((o) => o.listingId === input.listingId);
+  const offer: SellOffer = {
+    id: existing?.id ?? uid("offer"),
+    listingId: input.listingId,
+    ownerEmail: input.ownerEmail,
+    ownerName: input.ownerName,
+    ownerRole: input.ownerRole,
+    product: input.product,
+    grade: input.grade,
+    quantity: input.quantity,
+    unit: "trays",
+    pricePerUnit: input.pricePerUnit,
+    location: input.location,
+    minOrder: input.minOrder,
+    publishedAt,
+  };
+
+  writeState({
+    ...state,
+    sellOffers: [
+      offer,
+      ...state.sellOffers.filter((o) => o.listingId !== input.listingId),
+    ],
+  });
+  return offer;
 }
 
 export function removeInventory(id: string) {
@@ -706,5 +852,6 @@ export function removeInventory(id: string) {
   writeState({
     ...state,
     inventory: state.inventory.filter((row) => row.id !== id),
+    sellOffers: state.sellOffers.filter((o) => o.listingId !== id),
   });
 }

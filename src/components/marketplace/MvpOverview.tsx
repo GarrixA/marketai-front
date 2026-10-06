@@ -1,7 +1,11 @@
 "use client";
 
 import { Icon, btn } from "@/lib/ui";
-import { formatRwf, resetMarketplace } from "@/lib/marketplaceStore";
+import {
+  formatRwf,
+  isDealForSupplier,
+  resetMarketplace,
+} from "@/lib/marketplaceStore";
 import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
 import { Panel, StatusBadge } from "@/components/marketplace/uiBits";
 import type { DashboardRole } from "@/lib/session";
@@ -28,8 +32,8 @@ export function MvpOverview({
   const email = session?.email ?? "";
 
   const myBuy = deals.filter((d) => d.buyerEmail === email);
-  const mySupply = deals.filter((d) => d.supplierEmail === email);
-  const openRequests = deals.filter((d) => d.status === "requested");
+  const mySupply = deals.filter((d) => isDealForSupplier(d, email, inventory));
+  const openRequests = mySupply.filter((d) => d.status === "requested");
   const paidDeals = deals.filter((d) =>
     ["paid", "transport_open", "transport_quoted", "transport_accepted"].includes(
       d.status
@@ -137,16 +141,18 @@ export function MvpOverview({
     role === "buyer"
       ? [
           ["Products", "Buy from suppliers and aggregators"],
+          ["Sell Offers", "New published sell listings"],
           ["Buy Requests", "Publish custom RFQs"],
           ["Deals", "Pay confirmed quantities"],
         ]
       : role === "aggregator"
         ? [
             ["Products", "Toggle Buy / Sell market view"],
+            ["Sell Offers", "Buy from other sellers"],
             ["Buy Requests", "Source stock from farms"],
             ["Deals", "Confirm, collect payment, book transport"],
           ]
-        : role === "supplier"
+      : role === "supplier"
           ? [
               ["Products", "Manage your sell listings"],
               ["Buy Requests", "Confirm available quantity"],

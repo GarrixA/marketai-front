@@ -19,10 +19,6 @@ function starRating(percent: number): string {
 }
 
 export function inventoryToProductListing(item: InventoryItem): ProductListing {
-  const specialty =
-    item.grade.toLowerCase().includes("organic") ||
-    item.grade.toLowerCase().includes("free-range");
-
   return {
     id: item.id,
     name: `${item.product} · ${item.grade}`,
@@ -32,7 +28,7 @@ export function inventoryToProductListing(item: InventoryItem): ProductListing {
     qty: `${item.quantity.toLocaleString("en-RW")} ${item.unit}`,
     min: `${item.minOrder} ${item.unit}`,
     rating: starRating(item.rating),
-    category: specialty ? "Specialty eggs" : "Eggs",
+    category: "Eggs",
   };
 }
 

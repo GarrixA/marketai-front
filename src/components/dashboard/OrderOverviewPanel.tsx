@@ -58,9 +58,9 @@ export function OrderOverviewPanel({ supplier }: { supplier: boolean }) {
                   </small>
                 </td>
                 <td className="border-b border-[#ecebe6] px-2.75 py-3.75">
-                  Mixed vegetables
+                  Fresh eggs · Large
                   <small className="mt-0.5 block text-[0.5625rem] text-soko-muted">
-                    50 crates
+                    50 trays
                   </small>
                 </td>
                 <td className="border-b border-[#ecebe6] px-2.75 py-3.75">
@@ -89,9 +89,9 @@ export function OrderOverviewPanel({ supplier }: { supplier: boolean }) {
                   </small>
                 </td>
                 <td className="border-b border-[#ecebe6] px-2.75 py-3.75">
-                  Dry maize
+                  Fresh eggs · Medium
                   <small className="mt-0.5 block text-[0.5625rem] text-soko-muted">
-                    100 bags
+                    100 trays
                   </small>
                 </td>
                 <td className="border-b border-[#ecebe6] px-2.75 py-3.75">

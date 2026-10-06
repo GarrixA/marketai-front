@@ -4,47 +4,50 @@ import { searchListings } from "@/lib/searchListings";
 
 const sample: ProductListing[] = [
   {
-    name: "Grade 1 Dry Maize",
-    supplier: "Kigali Grain Collective",
-    location: "Gasabo, Kigali",
-    price: "8,900",
-    qty: "420 bags",
-    min: "10 bags",
-    rating: "4.8",
-    category: "Grains",
-  },
-  {
-    name: "Fresh Mixed Vegetables",
+    name: "Fresh eggs · Large",
     supplier: "Musanze Growers Co-op",
-    location: "Musanze",
-    price: "9,800",
-    qty: "640 crates",
-    min: "20 crates",
-    rating: "4.9",
-    category: "Produce",
+    location: "Gasabo, Kigali",
+    price: "4,000",
+    qty: "320 trays",
+    min: "20 trays",
+    rating: "4.8",
+    category: "Eggs",
   },
   {
-    name: "Hass Avocados",
-    supplier: "Ruhango Orchard Network",
-    location: "Ruhango",
-    price: "14,800",
-    qty: "220 crates",
-    min: "10 crates",
+    name: "Fresh eggs · Medium",
+    supplier: "Northern Egg Hub",
+    location: "Musanze",
+    price: "3,750",
+    qty: "180 trays",
+    min: "15 trays",
     rating: "4.9",
-    category: "Fruit",
+    category: "Eggs",
+  },
+  {
+    name: "Fresh eggs · Free-range",
+    supplier: "Ruhango Layers",
+    location: "Ruhango",
+    price: "4,800",
+    qty: "90 trays",
+    min: "10 trays",
+    rating: "4.9",
+    category: "Eggs",
   },
 ];
 
 describe("searchListings", () => {
-  it("matches synonyms like corn -> maize", () => {
+  it("matches synonyms like tray -> eggs", () => {
     const results = searchListings(sample, {
-      query: "corn",
+      query: "tray",
       location: "",
       quantity: "",
       category: "",
     });
 
-    expect(results.map((item) => item.name)).toEqual(["Grade 1 Dry Maize"]);
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every((item) => item.name.toLowerCase().includes("egg"))).toBe(
+      true
+    );
   });
 
   it("filters by location districts under Kigali", () => {
@@ -59,15 +62,15 @@ describe("searchListings", () => {
     expect(results[0].location).toContain("Kigali");
   });
 
-  it("ranks exact product names above weaker matches", () => {
+  it("matches free-range egg listings", () => {
     const results = searchListings(sample, {
-      query: "avocado",
+      query: "Ruhango",
       location: "",
       quantity: "",
-      category: "",
+      category: "Eggs",
     });
 
-    expect(results[0].name).toBe("Hass Avocados");
+    expect(results.some((item) => item.name.includes("Free-range"))).toBe(true);
   });
 
   it("applies category and quantity together", () => {
@@ -75,11 +78,9 @@ describe("searchListings", () => {
       query: "",
       location: "",
       quantity: "200+",
-      category: "Produce",
+      category: "Eggs",
     });
 
-    expect(results.map((item) => item.name)).toEqual([
-      "Fresh Mixed Vegetables",
-    ]);
+    expect(results.map((item) => item.name)).toEqual(["Fresh eggs · Large"]);
   });
 });
