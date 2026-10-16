@@ -21,6 +21,7 @@ import { mapApiDealToLocal } from "@/lib/mapApiDeal";
 import { subscribeSellOffersSeen } from "@/lib/sellOffersSeen";
 import {
   liveDealListOptions,
+  useListAllDealsQuery,
   useListIncomingDealsQuery,
   useListMyDealsQuery,
   useListTransportDealsQuery,
@@ -44,26 +45,7 @@ const workspaceLabel: Record<DashboardRole, string> = {
   admin: "Operations",
 };
 
-function SidebarNav({
-  role,
-  active,
-  onLeaveWorkspace,
-  onLogout,
-  onNavigate,
-  displayName,
-  businessName,
-  avatarUrl,
-}: {
-  role: DashboardRole;
-  active: DashboardSection | null;
-  onLeaveWorkspace: () => void;
-  onLogout: () => void;
-  onNavigate?: () => void;
-  displayName: string;
-  businessName: string;
-  avatarUrl?: string | null;
-}) {
-  const router = useRouter();
+function useWorkspaceBadges(role: DashboardRole) {
   const session = getSession();
   const { deals, inventory, sellOffers } = useMarketplace();
   const [, setSeenTick] = useState(0);
@@ -90,16 +72,21 @@ function SidebarNav({
       skip: !canFetchTransport,
     }
   );
+  const { data: allApiDeals = [] } = useListAllDealsQuery(undefined, {
+    ...liveDealListOptions,
+    skip: role !== "admin",
+  });
   const apiDeals = useMemo(
     () => [
       ...myApiDeals.map(mapApiDealToLocal),
       ...incomingApiDeals.map(mapApiDealToLocal),
       ...transportApiDeals.map(mapApiDealToLocal),
+      ...allApiDeals.map(mapApiDealToLocal),
     ],
-    [myApiDeals, incomingApiDeals, transportApiDeals]
+    [myApiDeals, incomingApiDeals, transportApiDeals, allApiDeals]
   );
 
-  const badges = getNavBadges({
+  return getNavBadges({
     role,
     email: session?.email ?? "",
     userId: session?.userId,
@@ -108,6 +95,29 @@ function SidebarNav({
     sellOffers,
     apiDeals,
   });
+}
+
+function SidebarNav({
+  role,
+  active,
+  onLeaveWorkspace,
+  onLogout,
+  onNavigate,
+  displayName,
+  businessName,
+  avatarUrl,
+}: {
+  role: DashboardRole;
+  active: DashboardSection | null;
+  onLeaveWorkspace: () => void;
+  onLogout: () => void;
+  onNavigate?: () => void;
+  displayName: string;
+  businessName: string;
+  avatarUrl?: string | null;
+}) {
+  const router = useRouter();
+  const badges = useWorkspaceBadges(role);
 
   const go = (section: DashboardSection) => {
     router.push(SECTION_PATH[section]);
@@ -472,50 +482,7 @@ function MobileMenuButton({
   role: DashboardRole;
   onOpen: () => void;
 }) {
-  const session = getSession();
-  const { deals, inventory, sellOffers } = useMarketplace();
-  const [, setSeenTick] = useState(0);
-
-  useEffect(() => subscribeSellOffersSeen(() => setSeenTick((n) => n + 1)), []);
-
-  const canFetchMine =
-    role === "buyer" || role === "aggregator" || role === "admin";
-  const canFetchIncoming =
-    role === "supplier" || role === "aggregator" || role === "admin";
-  const canFetchTransport = role === "logistics" || role === "admin";
-  const { data: myApiDeals = [] } = useListMyDealsQuery(undefined, {
-    ...liveDealListOptions,
-    skip: !canFetchMine,
-  });
-  const { data: incomingApiDeals = [] } = useListIncomingDealsQuery(undefined, {
-    ...liveDealListOptions,
-    skip: !canFetchIncoming,
-  });
-  const { data: transportApiDeals = [] } = useListTransportDealsQuery(
-    undefined,
-    {
-      ...liveDealListOptions,
-      skip: !canFetchTransport,
-    }
-  );
-  const apiDeals = useMemo(
-    () => [
-      ...myApiDeals.map(mapApiDealToLocal),
-      ...incomingApiDeals.map(mapApiDealToLocal),
-      ...transportApiDeals.map(mapApiDealToLocal),
-    ],
-    [myApiDeals, incomingApiDeals, transportApiDeals]
-  );
-
-  const badges = getNavBadges({
-    role,
-    email: session?.email ?? "",
-    userId: session?.userId,
-    deals,
-    inventory,
-    sellOffers,
-    apiDeals,
-  });
+  const badges = useWorkspaceBadges(role);
   const pending = Object.entries(badges)
     .filter(([section]) => section !== "Overview")
     .reduce((sum, [, n]) => sum + (n ?? 0), 0);
@@ -630,8 +597,9 @@ export function DashboardShell({
 
   const goToMarketplace = () => router.push("/");
   const logout = () => {
-    authService.logout();
-    router.push("/");
+    void Promise.resolve(authService.logout()).finally(() => {
+      router.push("/");
+    });
   };
 
   const headerName =

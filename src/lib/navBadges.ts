@@ -26,7 +26,11 @@ export function getNavBadges({
   const byId = new Map<string, Deal>();
   for (const deal of deals) byId.set(deal.id, deal);
   for (const deal of apiDeals) byId.set(deal.id, deal);
-  const allDeals = Array.from(byId.values());
+  // Product purchases and transport come from the API. Buy requests are still
+  // stored in the browser, so those local RFQs stay countable.
+  const allDeals = Array.from(byId.values()).filter(
+    (deal) => isPersistedDeal(deal.id) || isRfqDeal(deal)
+  );
 
   const myBuy = allDeals.filter((d) => d.buyerEmail === email);
   const myRfq = myBuy.filter(isRfqDeal);
@@ -134,7 +138,9 @@ export function getNavBadges({
   }
 
   if (role === "admin") {
-    const allOpen = allDeals.filter((d) => d.status === "requested").length;
+    const allOpen = allDeals.filter(
+      (deal) => isPersistedDeal(deal.id) && deal.status === "requested"
+    ).length;
     if (allOpen) badges.Deals = allOpen;
   }
 

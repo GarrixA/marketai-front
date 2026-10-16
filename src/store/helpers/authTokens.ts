@@ -2,6 +2,7 @@ import { getStoredToken } from "@/lib/session";
 
 const PUBLIC_AUTH_ENDPOINTS = new Set([
   "login",
+  "logout",
   "register",
   "verifyEmail",
   "claimRole",

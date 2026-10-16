@@ -1,5 +1,6 @@
 import type { PublicUser } from "@/types/auth";
 import { displayNameFromUser, resolveDashboardRole } from "@/lib/authRoles";
+import { clearMarketplaceStorage } from "@/lib/marketplaceStore";
 
 export type DashboardRole =
   "buyer" | "supplier" | "aggregator" | "logistics" | "admin";
@@ -18,7 +19,8 @@ export type UserSession = {
 };
 
 const STORAGE_KEY = "soko_user_session";
-const TOKEN_KEY = "soko_access_token";
+/** Legacy localStorage key. New sessions keep the JWT in the httpOnly access_token cookie. */
+const LEGACY_TOKEN_KEY = "soko_access_token";
 
 export function dashboardRoleFromRegistrationIndex(
   index: number
@@ -70,21 +72,24 @@ export function getSession(): UserSession | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as UserSession;
-    if (!parsed?.role || !parsed?.token) return null;
-    return parsed;
+    if (!parsed?.role || !parsed?.userId) return null;
+    const token = getStoredToken() || parsed.token || "";
+    return { ...parsed, token };
   } catch {
     return null;
   }
 }
 
+/** Readable token copy. The durable token is the httpOnly cookie, which JS cannot read. */
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY) || getSession()?.token || null;
+  return localStorage.getItem(LEGACY_TOKEN_KEY);
 }
 
 export function setSession(session: UserSession): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  localStorage.setItem(TOKEN_KEY, session.token);
+  const profile = { ...session, token: undefined };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("soko-session"));
   }
@@ -92,5 +97,9 @@ export function setSession(session: UserSession): void {
 
 export function clearSession(): void {
   localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  clearMarketplaceStorage();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("soko-session"));
+  }
 }

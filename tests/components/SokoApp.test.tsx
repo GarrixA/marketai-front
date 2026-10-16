@@ -111,8 +111,8 @@ describe("SokoApp", () => {
     ).toMatchObject({
       role: "buyer",
       email: "buyer@soko.rw",
-      token: "test-token",
     });
+    expect(localStorage.getItem("soko_access_token")).toBeNull();
     expect(push).toHaveBeenCalledWith("/dashboard");
   });
 
@@ -199,6 +199,8 @@ describe("SokoApp", () => {
 
     expect(logoutMock).toHaveBeenCalled();
     expect(localStorage.getItem("soko_user_session")).toBeNull();
-    expect(push).toHaveBeenCalledWith("/");
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith("/");
+    });
   });
 });

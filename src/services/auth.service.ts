@@ -2,6 +2,7 @@ import authApi from "@/store/actions/auth";
 import { rtkMutation, rtkQuery } from "@/store/helpers/rtkDispatch";
 import { clearToken, setToken } from "@/store/reducer/app";
 import { store } from "@/store/page";
+import baseAPI from "@/utils/config/api";
 import {
   clearSession,
   sessionFromLogin,
@@ -115,9 +116,15 @@ export const authService = {
     return rtkMutation<{ message: string }>(endpoints.changePassword, payload);
   },
 
-  logout(): void {
+  async logout(): Promise<void> {
+    try {
+      await rtkMutation<{ message: string }>(endpoints.logout, undefined);
+    } catch {
+      // Clear local state even when the API is unreachable.
+    }
     clearSession();
     store.dispatch(clearToken());
+    store.dispatch(baseAPI.util.resetApiState());
   },
 
   formatError: formatApiError,
