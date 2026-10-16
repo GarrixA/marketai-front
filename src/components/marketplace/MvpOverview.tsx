@@ -1,169 +1,231 @@
 "use client";
 
-import { Icon, btn } from "@/lib/ui";
-import {
-  formatRwf,
-  isDealForSupplier,
-  resetMarketplace,
-} from "@/lib/marketplaceStore";
-import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
-import { Panel, StatusBadge } from "@/components/marketplace/uiBits";
+import { Icon } from "@/lib/ui";
+import { formatRwf } from "@/lib/marketplaceStore";
+import { Panel } from "@/components/marketplace/uiBits";
+import { SupplyOverviewChart } from "@/components/marketplace/SupplyOverviewChart";
 import type { DashboardRole } from "@/lib/session";
 import { getSession } from "@/lib/session";
+import { useListAvailableProductsQuery } from "@/store/actions/products";
+import {
+  liveDealListOptions,
+  useListAllDealsQuery,
+  useListIncomingDealsQuery,
+  useListMyDealsQuery,
+} from "@/store/actions/deals";
+import type { ApiDeal } from "@/types/deal";
 
-const loopSteps = [
-  "Discover",
-  "Request",
-  "Confirm",
-  "Pay",
-  "Transport",
-  "Quote",
-] as const;
+function confirmedValue(deal: ApiDeal) {
+  if (deal.status !== "CONFIRMED") return 0;
+  const qty = deal.confirmedQty ?? deal.quantity;
+  const price = deal.offerPrice ?? deal.targetPrice;
+  return qty * price;
+}
 
-export function MvpOverview({
-  role,
-  onGo,
-}: {
-  role: DashboardRole;
-  onGo: (section: string) => void;
-}) {
-  const { deals, inventory } = useMarketplace();
+export function MvpOverview({ role }: { role: DashboardRole }) {
   const session = getSession();
-  const email = session?.email ?? "";
+  const { data: products = [], isLoading: productsLoading } =
+    useListAvailableProductsQuery();
 
-  const myBuy = deals.filter((d) => d.buyerEmail === email);
-  const mySupply = deals.filter((d) => isDealForSupplier(d, email, inventory));
-  const openRequests = mySupply.filter((d) => d.status === "requested");
-  const paidDeals = deals.filter((d) =>
-    ["paid", "transport_open", "transport_quoted", "transport_accepted"].includes(
-      d.status
-    )
+  const isAdmin = role === "admin";
+  const canBuy = role === "buyer" || role === "aggregator";
+  const canSell = role === "supplier" || role === "aggregator";
+
+  const { data: allDeals = [], isLoading: allDealsLoading } =
+    useListAllDealsQuery(undefined, {
+      ...liveDealListOptions,
+      skip: !isAdmin,
+    });
+  const { data: myDeals = [], isLoading: myDealsLoading } = useListMyDealsQuery(
+    undefined,
+    { ...liveDealListOptions, skip: isAdmin || !canBuy }
   );
-  const paidNotices = mySupply.filter((d) =>
-    ["paid", "transport_open", "transport_quoted"].includes(d.status)
+  const { data: incomingDeals = [], isLoading: incomingLoading } =
+    useListIncomingDealsQuery(undefined, {
+      ...liveDealListOptions,
+      skip: isAdmin || !canSell,
+    });
+
+  const deals: ApiDeal[] = isAdmin ? allDeals : [...myDeals, ...incomingDeals];
+  const dealsLoading = isAdmin
+    ? allDealsLoading
+    : (canBuy && myDealsLoading) || (canSell && incomingLoading);
+
+  const liveProducts = products.filter(
+    (p) => p.isAvailable && p.availableQuantity > 0
   );
-  const transportOpen = deals.filter(
-    (d) => d.status === "transport_open" || d.status === "transport_quoted"
+  const marketTrays = liveProducts.reduce(
+    (sum, p) => sum + (p.availableQuantity || 0),
+    0
   );
-  const myStock = inventory.filter((i) => i.ownerEmail === email);
-  const stockTrays = myStock.reduce((sum, i) => sum + i.quantity, 0);
-  const marketTrays = inventory.reduce((sum, i) => sum + i.quantity, 0);
   const avgPrice =
-    inventory.length === 0
+    liveProducts.length === 0
       ? 0
       : Math.round(
-          inventory.reduce((s, i) => s + i.pricePerUnit, 0) / inventory.length
+          liveProducts.reduce((s, p) => s + Number(p.price || 0), 0) /
+            liveProducts.length
         );
-  const gmv = paidDeals.reduce((s, d) => s + (d.paidAmount ?? 0), 0);
-  const supplierListings = inventory.filter((i) => i.ownerRole === "supplier");
-  const aggregatorListings = inventory.filter(
-    (i) => i.ownerRole === "aggregator"
+  const supplierListings = liveProducts.filter(
+    (p) => p.owner?.role === "supplier"
   );
+  const aggregatorListings = liveProducts.filter(
+    (p) => p.owner?.role === "aggregator"
+  );
+  const myDbStock = liveProducts.filter(
+    (p) => p.ownerId && session?.userId && p.ownerId === session.userId
+  );
+  const myDbTrays = myDbStock.reduce(
+    (sum, p) => sum + (p.availableQuantity || 0),
+    0
+  );
+
+  const activeDeals = deals.filter((d) => d.status !== "REJECTED");
+  const confirmedDeals = deals.filter((d) => d.status === "CONFIRMED");
+  const confirmedTotal = confirmedDeals.reduce(
+    (sum, deal) => sum + confirmedValue(deal),
+    0
+  );
+  const requestedDeals = deals.filter((d) => d.status === "REQUESTED");
+
+  const dash = (value: string, loading = productsLoading) =>
+    loading ? "…" : value;
 
   const metrics =
     role === "buyer"
       ? [
-          ["Products live", String(inventory.length), "Suppliers + aggregators"],
-          ["My requests", String(myBuy.length), "Open and in progress"],
           [
-            "Ready to pay",
-            String(myBuy.filter((d) => d.status === "confirmed").length),
-            "Quantity confirmed",
+            "Products live",
+            dash(String(liveProducts.length)),
+            "Suppliers + aggregators",
           ],
-          ["Spent", formatRwf(myBuy.reduce((s, d) => s + (d.paidAmount ?? 0), 0)), "Paid deals"],
+          [
+            "My requests",
+            dash(String(myDeals.length), dealsLoading),
+            "Open and in progress",
+          ],
+          [
+            "Confirmed",
+            dash(
+              String(myDeals.filter((d) => d.status === "CONFIRMED").length),
+              dealsLoading
+            ),
+            "Quantity agreed",
+          ],
+          [
+            "Committed",
+            dash(
+              formatRwf(myDeals.reduce((s, d) => s + confirmedValue(d), 0)),
+              dealsLoading
+            ),
+            "Confirmed deal value",
+          ],
         ]
       : role === "logistics"
         ? [
-            ["Open jobs", String(transportOpen.length), "Need a quote"],
+            ["Listings", dash(String(liveProducts.length)), "Active products"],
             [
-              "My quotes",
-              String(
-                deals.filter((d) =>
-                  d.transportQuotes.some((q) => q.logisticsEmail === email)
-                ).length
-              ),
-              "Submitted",
+              "Supplier lots",
+              dash(String(supplierListings.length)),
+              "On the market",
             ],
             [
-              "Booked",
-              String(
-                deals.filter(
-                  (d) =>
-                    d.status === "transport_accepted" &&
-                    d.acceptedQuoteId === email
-                ).length
-              ),
-              "Accepted by supplier",
+              "Aggregator lots",
+              dash(String(aggregatorListings.length)),
+              "On the market",
             ],
-            ["Market trays", marketTrays.toLocaleString(), "Moving through Soko"],
+            [
+              "Market quantity",
+              dash(marketTrays.toLocaleString("en-RW")),
+              "Available now",
+            ],
           ]
         : role === "admin"
           ? [
-              ["Listings", String(inventory.length), "Active products"],
-              ["Supply trays", marketTrays.toLocaleString(), "Across Rwanda"],
-              ["Avg tray price", formatRwf(avgPrice), "All grades"],
-              ["GMV paid", formatRwf(gmv), "Completed payments"],
+              [
+                "Listings",
+                dash(String(liveProducts.length)),
+                "Active products",
+              ],
+              [
+                "Supply quantity",
+                dash(marketTrays.toLocaleString("en-RW")),
+                "Across listings",
+              ],
+              ["Avg list price", dash(formatRwf(avgPrice)), "Live catalog"],
+              [
+                "Confirmed value",
+                dash(formatRwf(confirmedTotal), dealsLoading),
+                "Agreed deals",
+              ],
             ]
           : role === "aggregator"
             ? [
-                ["My stock", stockTrays.toLocaleString(), `${myStock.length} lots`],
                 [
-                  "Buy-side open",
-                  String(myBuy.filter((d) => d.status !== "transport_accepted").length),
+                  "My stock",
+                  dash(myDbTrays.toLocaleString("en-RW")),
+                  `${myDbStock.length} lots`,
+                ],
+                [
+                  "Buy requests",
+                  dash(
+                    String(
+                      myDeals.filter((d) => d.status !== "REJECTED").length
+                    ),
+                    dealsLoading
+                  ),
                   "Sourcing deals",
                 ],
-                ["Sell notices", String(paidNotices.length), "Payment received"],
+                [
+                  "Sell notices",
+                  dash(
+                    String(
+                      incomingDeals.filter((d) => d.status === "REQUESTED")
+                        .length
+                    ),
+                    dealsLoading
+                  ),
+                  "Need confirmation",
+                ],
                 [
                   "Market to buy",
-                  String(inventory.filter((i) => i.ownerEmail !== email).length),
+                  dash(
+                    String(
+                      liveProducts.filter((p) => p.ownerId !== session?.userId)
+                        .length
+                    )
+                  ),
                   "Available listings",
                 ],
               ]
             : [
-                ["My stock", stockTrays.toLocaleString(), `${myStock.length} lots`],
-                ["Open requests", String(openRequests.length), "Need confirmation"],
-                ["Payment notices", String(paidNotices.length), "Ready for transport"],
-                ["Avg list price", formatRwf(avgPrice), "Marketplace"],
+                [
+                  "My stock",
+                  dash(myDbTrays.toLocaleString("en-RW")),
+                  `${myDbStock.length} lots`,
+                ],
+                [
+                  "Open requests",
+                  dash(String(requestedDeals.length), dealsLoading),
+                  "Need confirmation",
+                ],
+                [
+                  "Confirmed",
+                  dash(String(confirmedDeals.length), dealsLoading),
+                  "Quantity agreed",
+                ],
+                ["Avg list price", dash(formatRwf(avgPrice)), "Marketplace"],
               ];
 
   const analyticsRows = [
-    ["Total products", String(inventory.length)],
-    ["Supplier listings", String(supplierListings.length)],
-    ["Aggregator listings", String(aggregatorListings.length)],
-    ["Total trays available", marketTrays.toLocaleString()],
-    ["Average price / tray", formatRwf(avgPrice)],
-    ["Active deals", String(deals.length)],
-    ["Paid transactions", String(paidDeals.length)],
-    ["Gross paid value", formatRwf(gmv)],
+    ["Total products", dash(String(liveProducts.length))],
+    ["Supplier listings", dash(String(supplierListings.length))],
+    ["Aggregator listings", dash(String(aggregatorListings.length))],
+    ["Quantity available", dash(marketTrays.toLocaleString("en-RW"))],
+    ["Average price", dash(formatRwf(avgPrice))],
+    ["Active deals", dash(String(activeDeals.length), dealsLoading)],
+    ["Confirmed deals", dash(String(confirmedDeals.length), dealsLoading)],
+    ["Confirmed value", dash(formatRwf(confirmedTotal), dealsLoading)],
   ];
-
-  const shortcuts =
-    role === "buyer"
-      ? [
-          ["Products", "Buy from suppliers and aggregators"],
-          ["Sell Offers", "New published sell listings"],
-          ["Buy Requests", "Publish custom RFQs"],
-          ["Deals", "Pay confirmed quantities"],
-        ]
-      : role === "aggregator"
-        ? [
-            ["Products", "Toggle Buy / Sell market view"],
-            ["Sell Offers", "Buy from other sellers"],
-            ["Buy Requests", "Source stock from farms"],
-            ["Deals", "Confirm, collect payment, book transport"],
-          ]
-      : role === "supplier"
-          ? [
-              ["Products", "Manage your sell listings"],
-              ["Buy Requests", "Confirm available quantity"],
-              ["Deals", "Payment notices & transport"],
-            ]
-          : role === "logistics"
-            ? [["Transport", "Accept notices and send your fee"]]
-            : [
-                ["Products", "Browse all listings"],
-                ["Deals", "Monitor marketplace bargains"],
-              ];
 
   return (
     <div className="space-y-4.25">
@@ -171,12 +233,14 @@ export function MvpOverview({
         {metrics.map((m, i) => (
           <div
             key={m[0]}
-            className="relative rounded-1.75 border border-[#ddded9] bg-white p-4.5"
+            className="relative rounded-1.75 border border-soko-line bg-white p-4.5"
           >
-            <span className="absolute top-4 right-4 rounded-1.25 bg-[#eef1f4] p-1.75 text-soko-green">
+            <span className="absolute top-4 right-4 rounded-1.25 bg-soko-slate p-1.75 text-soko-navy">
               <Icon name={["box", "card", "truck", "chart"][i]} />
             </span>
-            <small className="block text-[0.625rem] text-soko-muted">{m[0]}</small>
+            <small className="block text-[0.625rem] text-soko-muted">
+              {m[0]}
+            </small>
             <strong className="my-2 block font-display text-[1.4375rem] font-bold">
               {m[1]}
             </strong>
@@ -185,130 +249,47 @@ export function MvpOverview({
         ))}
       </div>
 
-      <div className="grid grid-cols-[1.35fr_1fr] gap-4.25 max-md:grid-cols-1">
+      <div className="grid grid-cols-[1.7fr_0.9fr] gap-4.25 max-md:grid-cols-1">
+        <Panel
+          title="This year"
+          subtitle="Listings and deals opened each month, from live records."
+        >
+          <SupplyOverviewChart
+            loading={productsLoading || dealsLoading}
+            series={[
+              {
+                name: "Listings",
+                dates: products.map((product) => product.createdAt),
+              },
+              ...(role === "logistics"
+                ? []
+                : [
+                    {
+                      name: "Deals",
+                      dates: deals.map((deal) => deal.createdAt),
+                    },
+                  ]),
+            ]}
+          />
+        </Panel>
+
         <Panel
           title="Marketplace analytics"
-          subtitle="Supply, listings, and transaction health."
-          action={
-            <button
-              type="button"
-              className={`${btn.outline} text-[0.6875rem]`}
-              onClick={() => resetMarketplace()}
-            >
-              Reset demo data
-            </button>
-          }
+          subtitle="Live figures from the product catalog and deals."
         >
-          <div className="grid grid-cols-2 gap-x-6 gap-y-0 max-sm:grid-cols-1">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-0">
             {analyticsRows.map(([label, value]) => (
               <p
                 key={label}
-                className="m-0 flex items-center justify-between border-b border-[#ecebe6] py-2.5 text-[0.6875rem]"
+                className="m-0 flex items-center justify-between border-b border-soko-line py-2.5 text-[0.6875rem] last:border-b-0"
               >
                 <span className="text-soko-muted">{label}</span>
                 <strong>{value}</strong>
               </p>
             ))}
           </div>
-          <div className="mt-4">
-            <p className="mb-2 text-[0.5625rem] font-bold tracking-wide text-soko-muted uppercase">
-              Supply mix
-            </p>
-            <div className="flex h-2.5 overflow-hidden rounded-full bg-[#e8ebe6]">
-              <span
-                className="bg-soko-green"
-                style={{
-                  width: `${
-                    inventory.length
-                      ? (supplierListings.length / inventory.length) * 100
-                      : 0
-                  }%`,
-                }}
-              />
-              <span
-                className="bg-[#c4a574]"
-                style={{
-                  width: `${
-                    inventory.length
-                      ? (aggregatorListings.length / inventory.length) * 100
-                      : 0
-                  }%`,
-                }}
-              />
-            </div>
-            <div className="mt-2 flex gap-4 text-[0.5625rem] text-soko-muted">
-              <span>
-                <i className="mr-1 inline-block h-2 w-2 rounded-sm bg-soko-green" />
-                Suppliers {supplierListings.length}
-              </span>
-              <span>
-                <i className="mr-1 inline-block h-2 w-2 rounded-sm bg-[#c4a574]" />
-                Aggregators {aggregatorListings.length}
-              </span>
-            </div>
-          </div>
         </Panel>
-
-        <div className="space-y-4.25">
-          <Panel
-            title="MVP loop"
-            subtitle="Discover → order → pay → deliver."
-          >
-            <div className="flex flex-wrap gap-2">
-              {loopSteps.map((step, i) => (
-                <div key={step} className="flex items-center gap-2">
-                  <span className="rounded-full bg-[#eef1f4] px-2.5 py-1 text-[0.5625rem] font-bold text-soko-green">
-                    {i + 1}. {step}
-                  </span>
-                  {i < loopSteps.length - 1 ? (
-                    <Icon name="arrow" size={12} className="text-soko-muted" />
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </Panel>
-
-          <Panel title="Go to workspace" subtitle="Jump into the flows you need.">
-            <div className="grid gap-2">
-              {shortcuts.map(([section, hint]) => (
-                <button
-                  key={section}
-                  type="button"
-                  onClick={() => onGo(section)}
-                  className="flex items-center justify-between rounded-1.25 border border-[#e5e4df] bg-[#fbfaf7] px-3.5 py-3 text-left hover:border-soko-green"
-                >
-                  <span>
-                    <strong className="block text-[0.8125rem]">{section}</strong>
-                    <small className="text-[0.5625rem] text-soko-muted">
-                      {hint}
-                    </small>
-                  </span>
-                  <Icon name="chevron" />
-                </button>
-              ))}
-            </div>
-          </Panel>
-        </div>
       </div>
-
-      <Panel title="Live deals" subtitle="Shared across demo accounts.">
-        <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-          {deals.slice(0, 4).map((deal) => (
-            <div
-              key={deal.id}
-              className="flex items-start justify-between gap-2 rounded-1.25 border border-[#e5e4df] px-3.5 py-3"
-            >
-              <div>
-                <strong className="block text-[0.6875rem]">{deal.product}</strong>
-                <small className="text-[0.5rem] text-soko-muted">
-                  {deal.buyerBusiness} · {deal.quantity} trays
-                </small>
-              </div>
-              <StatusBadge status={deal.status} />
-            </div>
-          ))}
-        </div>
-      </Panel>
     </div>
   );
 }

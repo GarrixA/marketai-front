@@ -8,7 +8,11 @@ const sample: ProductListing[] = [
     supplier: "Musanze Growers Co-op",
     location: "Gasabo, Kigali",
     price: "4,000",
+    priceValue: 4000,
+    priceUnit: "tray",
+    qtyValue: 320,
     qty: "320 trays",
+    minValue: 20,
     min: "20 trays",
     rating: "4.8",
     category: "Eggs",
@@ -18,7 +22,11 @@ const sample: ProductListing[] = [
     supplier: "Northern Egg Hub",
     location: "Musanze",
     price: "3,750",
+    priceValue: 3750,
+    priceUnit: "tray",
+    qtyValue: 180,
     qty: "180 trays",
+    minValue: 15,
     min: "15 trays",
     rating: "4.9",
     category: "Eggs",
@@ -28,7 +36,11 @@ const sample: ProductListing[] = [
     supplier: "Ruhango Layers",
     location: "Ruhango",
     price: "4,800",
+    priceValue: 4800,
+    priceUnit: "tray",
+    qtyValue: 90,
     qty: "90 trays",
+    minValue: 10,
     min: "10 trays",
     rating: "4.9",
     category: "Eggs",
@@ -45,9 +57,9 @@ describe("searchListings", () => {
     });
 
     expect(results.length).toBeGreaterThan(0);
-    expect(results.every((item) => item.name.toLowerCase().includes("egg"))).toBe(
-      true
-    );
+    expect(
+      results.every((item) => item.name.toLowerCase().includes("egg"))
+    ).toBe(true);
   });
 
   it("filters by location districts under Kigali", () => {

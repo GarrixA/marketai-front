@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
+import StoreProvider from "@/components/providers/StoreProvider";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -30,7 +31,9 @@ export default function RootLayout({
       lang="en"
       className={`${dmSans.variable} ${manrope.variable} h-full antialiased`}
     >
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        <StoreProvider>{children}</StoreProvider>
+      </body>
     </html>
   );
 }

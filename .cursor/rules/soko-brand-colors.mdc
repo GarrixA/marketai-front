@@ -1,0 +1,34 @@
+---
+description: Soko brand color palette — use these tokens in all UI components
+globs: src/**/*.{tsx,ts,css}
+alwaysApply: true
+---
+
+# Soko brand colors
+
+Use Tailwind tokens from `src/app/globals.css`. Do not introduce one-off brand hex values.
+
+## Palette
+
+| Role | Tokens | Hex | Use for |
+|------|--------|-----|---------|
+| Primary / Brand | `soko-navy`, `soko-ink`, `soko-green` (alias) | `#0D1B2A` | Headers, nav bars, primary text, footers, verified badges |
+| Primary dark | `soko-navy-2`, `soko-dark`, `soko-sidebar` | `#131921` | Hover on navy, sell actions, deep surfaces |
+| Flash / accent | `soko-cta`, `soko-amber` | `#FF9900` | Flash banners, live indicators, non-trade accents |
+| CTA hover | `soko-cta-hover` | `#E67E22` | Hover for amber accents |
+| Buy actions | `btn.buy*` | `#22c55e` / `#16a34a` | Buy / Add to order (keep green) |
+| Sell actions | `btn.sell*` | `#ef4444` / `#dc2626` | Sell / List for sale (keep red) |
+| Product grids | `bg-white` / `soko-white` | `#FFFFFF` | Product cards, panels, modals |
+| Section / page | `soko-slate`, `soko-page`, `soko-cream` | `#F4F6F8` | Page background, section dividers |
+| Borders | `soko-line` | `#E2E6EA` | Dividers, card borders, inputs |
+| Muted text | `soko-muted` | `#6B7280` | Secondary copy |
+| On-dark accent | `soko-lime`, `soko-on-dark` | `#C5D0DC` | Accents on navy heroes (not CTA) |
+
+## Rules
+
+1. Prefer `btn.buy*` (green) and `btn.sell*` (red) from `@/lib/ui` for trade actions — do not recolor them to navy/amber.
+2. Prefer `btn.primary*` for navy actions.
+3. Product grids and cards: `bg-white`. Surrounding page/sections: `bg-soko-page` or `bg-soko-slate`.
+4. Public header and footer: `bg-soko-navy` with light text/`Logo light`. Dashboard top bar + sidebar: `bg-white` like cards.
+5. Amber is for flash/live accents only — not Buy/Sell buttons.
+6. Legacy `soko-green` / `soko-green-2` map to navy — fine to keep; prefer `soko-navy` in new code.

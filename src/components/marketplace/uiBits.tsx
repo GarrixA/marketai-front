@@ -5,13 +5,17 @@ import type { Deal } from "@/lib/marketplaceTypes";
 import { dealStatusLabel } from "@/lib/marketplaceStore";
 
 const tone: Record<Deal["status"], string> = {
-  requested: "bg-[#fbebd8] text-[#9a5b18]",
-  confirmed: "bg-[#e8eef8] text-[#2f4f8a]",
+  requested: "bg-[#fff4e5] text-soko-cta-hover",
+  confirmed: "bg-soko-slate text-soko-navy",
   rejected: "bg-[#fde8e8] text-[#b42318]",
-  paid: "bg-[#e8edf3] text-[#3a5166]",
-  transport_open: "bg-[#f3ece2] text-[#7a5a2a]",
-  transport_quoted: "bg-[#e8eef8] text-[#2f4f8a]",
-  transport_accepted: "bg-[#e8edf3] text-[#3a5166]",
+  paid: "bg-soko-slate text-soko-green-2",
+  transport_open: "bg-[#fff4e5] text-soko-cta-hover",
+  transport_quoted: "bg-soko-slate text-soko-navy",
+  transport_accepted: "bg-soko-slate text-soko-green-2",
+  packaging_requested: "bg-[#fff4e5] text-soko-cta-hover",
+  in_transit: "bg-soko-slate text-soko-navy",
+  delivery_pending: "bg-[#fff4e5] text-soko-cta-hover",
+  delivered: "bg-soko-slate text-soko-green-2",
 };
 
 export function StatusBadge({ status }: { status: Deal["status"] }) {
@@ -36,14 +40,16 @@ export function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-1.75 border border-[#ddded9] bg-white p-5">
+    <section className="rounded-1.75 border border-soko-line bg-white p-5 shadow-[0_1px_2px_rgba(13,27,42,0.04)]">
       <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="m-0 mb-0.5 font-display text-[0.9375rem] font-bold">
+        <div className="min-w-0">
+          <h2 className="m-0 mb-0.5 font-display text-[1rem] font-bold tracking-tight text-soko-ink">
             {title}
           </h2>
           {subtitle ? (
-            <p className="m-0 text-[0.625rem] text-soko-muted">{subtitle}</p>
+            <p className="m-0 text-[0.6875rem] leading-snug text-soko-muted">
+              {subtitle}
+            </p>
           ) : null}
         </div>
         {action}
@@ -55,7 +61,7 @@ export function Panel({
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <p className="m-0 rounded-1.25 bg-[#f5f5f1] px-4 py-8 text-center text-xs text-soko-muted">
+    <p className="m-0 rounded-1.25 bg-soko-slate px-4 py-8 text-center text-xs text-soko-muted">
       {message}
     </p>
   );
@@ -77,4 +83,4 @@ export function Field({
 }
 
 export const fieldClass =
-  "block w-full rounded-1.25 border border-[#d8d9d3] bg-white p-2.75 text-xs outline-soko-green";
+  "block w-full rounded-1.25 border border-soko-line bg-white p-2.75 text-xs outline-soko-navy";

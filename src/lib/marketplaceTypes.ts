@@ -5,7 +5,14 @@ export type DealStatus =
   | "paid"
   | "transport_open"
   | "transport_quoted"
-  | "transport_accepted";
+  | "transport_accepted"
+  | "packaging_requested"
+  | "in_transit"
+  | "delivery_pending"
+  | "delivered";
+
+/** rfq = created on Buy Requests page; purchase = buy from a product/listing → Deals. */
+export type DealSource = "rfq" | "purchase";
 
 export type SellerRole = "supplier" | "aggregator";
 
@@ -50,18 +57,32 @@ export type Deal = {
   targetPrice: number;
   notes: string;
   status: DealStatus;
+  source?: DealSource;
   listingId?: string;
+  productId?: string;
   supplierEmail?: string;
   supplierName?: string;
+  /** Product owner user id — used when email is not available from the API. */
+  supplierUserId?: string;
   confirmedQty?: number;
   offerPrice?: number;
   paidAmount?: number;
   paidAt?: string;
+  paymentMethod?: string;
+  paymentAccount?: string;
+  paymentReleaseStatus?: string;
   pickupLocation?: string;
+  transportOfferedFee?: number;
   transportFee?: number;
   transportOpenedAt?: string;
+  logisticsName?: string;
+  logisticsEmail?: string;
   transportQuotes: TransportQuote[];
   acceptedQuoteId?: string;
+  platformFee?: number;
+  deliveryPayout?: number;
+  sellerPayout?: number;
+  settledAt?: string;
   createdAt: string;
 };
 

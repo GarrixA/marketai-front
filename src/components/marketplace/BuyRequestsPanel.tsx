@@ -6,6 +6,7 @@ import {
   createBuyRequest,
   formatRwf,
   isDealForSupplier,
+  isRfqDeal,
 } from "@/lib/marketplaceStore";
 import { waitForAction } from "@/lib/actionDelay";
 import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
@@ -28,6 +29,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
   const { deals, inventory } = useMarketplace();
   const session = getSession();
   const email = session?.email ?? "";
+  const userId = session?.userId;
 
   const [product, setProduct] = useState("Fresh eggs · Large");
   const [quantity, setQuantity] = useState("300");
@@ -38,10 +40,13 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
   const [tradeResult, setTradeResult] = useState<TradeResult | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // This page only lists RFQs created here. Product/listing buys live on Deals.
   const list =
     mode === "mine"
-      ? deals.filter((d) => d.buyerEmail === email)
-      : deals.filter((d) => isDealForSupplier(d, email, inventory));
+      ? deals.filter((d) => d.buyerEmail === email && isRfqDeal(d))
+      : deals.filter(
+          (d) => isRfqDeal(d) && isDealForSupplier(d, email, inventory, userId)
+        );
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +72,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
       kind: "buy",
       title: "Buy request sent",
       message:
-        "Suppliers can now review your request and confirm or reject it.",
+        "Suppliers can review this RFQ here and confirm or reject available quantity.",
       details: [
         product,
         `${qty} trays · needed by ${date}`,
@@ -83,7 +88,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
         {mode === "mine" ? (
           <Panel
             title="New buy request"
-            subtitle="Ask suppliers if they can fulfill your quantity."
+            subtitle="Publish an open RFQ. Buying a listed product notifies the seller on Deals instead."
           >
             <div className="relative">
               {loading ? <ActionOverlay label="Sending buy request…" /> : null}
@@ -195,19 +200,19 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
         )}
 
         <Panel
-          title={mode === "mine" ? "My requests" : "Open buy requests"}
+          title={mode === "mine" ? "My RFQs" : "Open RFQs"}
           subtitle={
             mode === "mine"
-              ? "Track supplier replies and payment."
-              : "Only requests for your products — confirm or reject each one."
+              ? "RFQs you published here. Product purchases appear under Deals."
+              : "Open RFQs from buyers — confirm or reject available quantity."
           }
         >
           {list.length === 0 ? (
             <EmptyState
               message={
                 mode === "mine"
-                  ? "No buy requests yet."
-                  : "No requests for your products yet."
+                  ? "No RFQs yet. Use the form to publish one, or buy a product from Products (that goes to Deals)."
+                  : "No open RFQs yet."
               }
             />
           ) : (
@@ -215,7 +220,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
               {list.map((deal) => (
                 <article
                   key={deal.id}
-                  className="rounded-1.25 border border-[#e5e4df] px-3.5 py-3.5"
+                  className="rounded-1.25 border border-soko-line px-3.5 py-3.5"
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div>

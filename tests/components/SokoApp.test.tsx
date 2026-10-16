@@ -5,11 +5,41 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardLayout from "@/app/dashboard/layout";
 import DashboardPage from "@/app/dashboard/page";
 import SokoApp from "@/components/SokoApp";
+import StoreProvider from "@/components/providers/StoreProvider";
+import type { UserSession } from "@/lib/session";
 
-vi.mock("@/lib/actionDelay", () => ({
-  ACTION_DELAY_MS: 0,
-  waitForAction: () => Promise.resolve(),
+const loginMock = vi.fn();
+const logoutMock = vi.fn();
+
+vi.mock("@/services/auth.service", () => ({
+  authService: {
+    login: (...args: unknown[]) => loginMock(...args),
+    register: vi.fn(),
+    logout: () => logoutMock(),
+    formatError: (error: unknown) =>
+      error instanceof Error ? error.message : "Login failed",
+  },
 }));
+
+const buyerSession: UserSession = {
+  token: "test-token",
+  userId: "user-buyer",
+  role: "buyer",
+  name: "Aline Kabera",
+  email: "buyer@soko.rw",
+  businessName: "Aline Kabera",
+  roles: ["BUYER"],
+};
+
+const logisticsSession: UserSession = {
+  token: "test-token-logistics",
+  userId: "user-logistics",
+  role: "logistics",
+  name: "Jean Niyonzima",
+  email: "logistics@soko.rw",
+  businessName: "Jean Niyonzima",
+  roles: ["DRIVER"],
+};
 
 async function signInAs(
   user: ReturnType<typeof userEvent.setup>,
@@ -25,8 +55,12 @@ async function signInAs(
   });
 }
 
+function renderWithStore(ui: React.ReactElement) {
+  return render(<StoreProvider>{ui}</StoreProvider>);
+}
+
 function renderDashboard() {
-  return render(
+  return renderWithStore(
     <DashboardLayout>
       <DashboardPage />
     </DashboardLayout>
@@ -36,11 +70,13 @@ function renderDashboard() {
 describe("SokoApp", () => {
   beforeEach(() => {
     localStorage.clear();
+    loginMock.mockReset();
+    logoutMock.mockReset();
     vi.mocked(usePathname).mockReturnValue("/dashboard");
   });
 
   it("renders the public marketplace", () => {
-    render(<SokoApp />);
+    renderWithStore(<SokoApp />);
 
     expect(
       screen.getByRole("heading", { name: /Reliable supply/i })
@@ -53,6 +89,7 @@ describe("SokoApp", () => {
   it("opens login modal and redirects buyer to /dashboard", async () => {
     const user = userEvent.setup();
     const push = vi.fn();
+    loginMock.mockResolvedValue(buyerSession);
     vi.mocked(useRouter).mockReturnValue({
       push,
       replace: vi.fn(),
@@ -62,21 +99,44 @@ describe("SokoApp", () => {
       prefetch: vi.fn(),
     });
 
-    render(<SokoApp />);
-    await signInAs(user, "buyer@soko.rw", "buyer123");
+    renderWithStore(<SokoApp />);
+    await signInAs(user, "buyer@soko.rw", "buyer12345");
 
-    expect(JSON.parse(localStorage.getItem("soko_user_session")!)).toMatchObject(
-      {
-        role: "buyer",
-        email: "buyer@soko.rw",
-      }
-    );
+    expect(loginMock).toHaveBeenCalledWith({
+      email: "buyer@soko.rw",
+      password: "buyer12345",
+    });
+    expect(
+      JSON.parse(localStorage.getItem("soko_user_session")!)
+    ).toMatchObject({
+      role: "buyer",
+      email: "buyer@soko.rw",
+      token: "test-token",
+    });
     expect(push).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("switches from login to the register form", async () => {
+    const user = userEvent.setup();
+    renderWithStore(<SokoApp />);
+
+    await user.click(screen.getByRole("button", { name: /Log in/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Create an account/i })
+    );
+
+    expect(
+      screen.getByRole("heading", { name: /Join Soko/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Create account/i })
+    ).toBeInTheDocument();
   });
 
   it("logs in a logistics user and stores the logistics role", async () => {
     const user = userEvent.setup();
     const push = vi.fn();
+    loginMock.mockResolvedValue(logisticsSession);
     vi.mocked(useRouter).mockReturnValue({
       push,
       replace: vi.fn(),
@@ -86,28 +146,21 @@ describe("SokoApp", () => {
       prefetch: vi.fn(),
     });
 
-    render(<SokoApp />);
+    renderWithStore(<SokoApp />);
     await signInAs(user, "logistics@soko.rw", "logistics123");
 
-    expect(JSON.parse(localStorage.getItem("soko_user_session")!)).toMatchObject(
-      {
-        role: "logistics",
-        email: "logistics@soko.rw",
-      }
-    );
+    expect(
+      JSON.parse(localStorage.getItem("soko_user_session")!)
+    ).toMatchObject({
+      role: "logistics",
+      email: "logistics@soko.rw",
+    });
     expect(push).toHaveBeenCalledWith("/dashboard");
   });
 
   it("renders the buyer dashboard from local storage on /dashboard", async () => {
-    localStorage.setItem(
-      "soko_user_session",
-      JSON.stringify({
-        role: "buyer",
-        name: "Aline Kabera",
-        email: "buyer@soko.rw",
-        businessName: "Kigali Fresh Foods",
-      })
-    );
+    localStorage.setItem("soko_user_session", JSON.stringify(buyerSession));
+    localStorage.setItem("soko_access_token", buyerSession.token);
 
     renderDashboard();
 
@@ -120,6 +173,10 @@ describe("SokoApp", () => {
   it("logs out from the dashboard and clears the session", async () => {
     const user = userEvent.setup();
     const push = vi.fn();
+    logoutMock.mockImplementation(() => {
+      localStorage.removeItem("soko_user_session");
+      localStorage.removeItem("soko_access_token");
+    });
     vi.mocked(useRouter).mockReturnValue({
       push,
       replace: vi.fn(),
@@ -129,15 +186,8 @@ describe("SokoApp", () => {
       prefetch: vi.fn(),
     });
 
-    localStorage.setItem(
-      "soko_user_session",
-      JSON.stringify({
-        role: "buyer",
-        name: "Aline Kabera",
-        email: "buyer@soko.rw",
-        businessName: "Kigali Fresh Foods",
-      })
-    );
+    localStorage.setItem("soko_user_session", JSON.stringify(buyerSession));
+    localStorage.setItem("soko_access_token", buyerSession.token);
 
     renderDashboard();
     await waitFor(() => {
@@ -147,6 +197,7 @@ describe("SokoApp", () => {
     });
     await user.click(screen.getByRole("button", { name: /Log out/i }));
 
+    expect(logoutMock).toHaveBeenCalled();
     expect(localStorage.getItem("soko_user_session")).toBeNull();
     expect(push).toHaveBeenCalledWith("/");
   });

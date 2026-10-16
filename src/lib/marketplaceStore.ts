@@ -378,6 +378,7 @@ export const seedMarketplace = (): MarketplaceState => ({
       targetPrice: 4000,
       notes: "Weekly supply preferred",
       status: "requested",
+      source: "purchase",
       listingId: "inv-1",
       supplierEmail: "supplier@soko.rw",
       supplierName: "Musanze Growers Co-op",
@@ -398,6 +399,7 @@ export const seedMarketplace = (): MarketplaceState => ({
       targetPrice: 3700,
       notes: "Buying to restock depot",
       status: "confirmed",
+      source: "purchase",
       supplierEmail: "supplier@soko.rw",
       supplierName: "Musanze Growers Co-op",
       confirmedQty: 150,
@@ -419,6 +421,7 @@ export const seedMarketplace = (): MarketplaceState => ({
       targetPrice: 4100,
       notes: "Paid — needs logistics quote",
       status: "transport_open",
+      source: "purchase",
       listingId: "inv-2",
       supplierEmail: "supplier@soko.rw",
       supplierName: "Musanze Growers Co-op",
@@ -511,12 +514,28 @@ export function dealStatusLabel(status: Deal["status"]) {
     case "transport_open":
       return "Transport requested";
     case "transport_quoted":
-      return "Transport quoted";
+      return "Price proposed";
     case "transport_accepted":
-      return "Transport booked";
+      return "Delivery booked";
+    case "packaging_requested":
+      return "Confirm packaging";
+    case "in_transit":
+      return "In transit";
+    case "delivery_pending":
+      return "Confirm delivery";
+    case "delivered":
+      return "Delivered";
     default:
       return status;
   }
+}
+
+/** True for RFQs created on the Buy Requests page (not product/listing purchases). */
+export function isRfqDeal(deal: Deal) {
+  if (deal.source === "rfq") return true;
+  if (deal.source === "purchase") return false;
+  // Legacy rows: treat listing/product buys as purchases.
+  return !deal.listingId && !deal.productId;
 }
 
 export function createBuyRequest(input: {
@@ -530,7 +549,6 @@ export function createBuyRequest(input: {
   requiredDate: string;
   targetPrice: number;
   notes: string;
-  listingId?: string;
   supplierEmail?: string;
   supplierName?: string;
 }) {
@@ -538,6 +556,7 @@ export function createBuyRequest(input: {
   const deal: Deal = {
     id: uid("deal"),
     ...input,
+    source: "rfq",
     status: "requested",
     transportQuotes: [],
     createdAt: new Date().toISOString(),
@@ -572,10 +591,13 @@ export function createBuyFromListing(input: {
     quantity: qty,
     unit: listing.unit,
     deliveryLocation: input.deliveryLocation,
-    requiredDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+    requiredDate: new Date(Date.now() + 3 * 86400000)
+      .toISOString()
+      .slice(0, 10),
     targetPrice: listing.pricePerUnit,
     notes: `Buy from listing ${listing.id}`,
     status: "requested",
+    source: "purchase",
     listingId: listing.id,
     supplierEmail: listing.ownerEmail,
     supplierName: listing.ownerName,
@@ -588,10 +610,65 @@ export function createBuyFromListing(input: {
   return deal;
 }
 
+/** Create a deal from a live marketplace product (API) so the owner can confirm on Deals. */
+export function createBuyFromProduct(input: {
+  productId: string;
+  productName: string;
+  grade?: string | null;
+  unit: string;
+  quantity: number;
+  minQuantity: number;
+  availableQuantity: number;
+  pricePerUnit: number;
+  pickupLocation: string;
+  buyerEmail: string;
+  buyerName: string;
+  buyerBusiness: string;
+  deliveryLocation: string;
+  supplierUserId: string;
+  supplierName: string;
+}) {
+  const state = readState();
+  const qty = Math.min(
+    Math.max(input.quantity, Math.max(1, input.minQuantity)),
+    Math.max(1, input.availableQuantity)
+  );
+
+  const deal: Deal = {
+    id: uid("deal"),
+    buyerEmail: input.buyerEmail,
+    buyerName: input.buyerName,
+    buyerBusiness: input.buyerBusiness,
+    product: input.grade
+      ? `${input.productName} · ${input.grade}`
+      : input.productName,
+    quantity: qty,
+    unit: input.unit.toLowerCase(),
+    deliveryLocation: input.deliveryLocation,
+    requiredDate: new Date(Date.now() + 3 * 86400000)
+      .toISOString()
+      .slice(0, 10),
+    targetPrice: input.pricePerUnit,
+    notes: `Buy from product ${input.productId}`,
+    status: "requested",
+    source: "purchase",
+    productId: input.productId,
+    supplierUserId: input.supplierUserId,
+    supplierName: input.supplierName,
+    pickupLocation: input.pickupLocation,
+    transportQuotes: [],
+    createdAt: new Date().toISOString(),
+  };
+
+  writeState({ ...state, deals: [deal, ...state.deals] });
+  return deal;
+}
+
 export function confirmDealQuantity(input: {
   dealId: string;
   supplierEmail: string;
   supplierName: string;
+  supplierUserId?: string;
   confirmedQty: number;
   offerPrice: number;
   pickupLocation: string;
@@ -606,6 +683,7 @@ export function confirmDealQuantity(input: {
             status: "confirmed",
             supplierEmail: input.supplierEmail,
             supplierName: input.supplierName,
+            supplierUserId: input.supplierUserId ?? d.supplierUserId,
             confirmedQty: input.confirmedQty,
             offerPrice: input.offerPrice,
             pickupLocation: input.pickupLocation,
@@ -619,6 +697,7 @@ export function rejectDeal(input: {
   dealId: string;
   supplierEmail: string;
   supplierName: string;
+  supplierUserId?: string;
 }) {
   const state = readState();
   writeState({
@@ -630,6 +709,7 @@ export function rejectDeal(input: {
             status: "rejected",
             supplierEmail: input.supplierEmail,
             supplierName: input.supplierName,
+            supplierUserId: input.supplierUserId ?? d.supplierUserId,
           }
         : d
     ),
@@ -639,15 +719,21 @@ export function rejectDeal(input: {
 export function isDealForSupplier(
   deal: Deal,
   supplierEmail: string,
-  inventory: InventoryItem[]
+  inventory: InventoryItem[],
+  supplierUserId?: string
 ) {
   if (deal.buyerEmail === supplierEmail) return false;
   if (deal.supplierEmail === supplierEmail) return true;
+  if (supplierUserId && deal.supplierUserId === supplierUserId) return true;
 
   const mine = inventory.filter((i) => i.ownerEmail === supplierEmail);
   if (deal.listingId && mine.some((i) => i.id === deal.listingId)) return true;
 
-  if (!deal.supplierEmail && deal.status === "requested") {
+  if (
+    !deal.supplierEmail &&
+    !deal.supplierUserId &&
+    deal.status === "requested"
+  ) {
     return mine.some((i) => {
       const label = `${i.product} · ${i.grade}`;
       return deal.product === label || deal.product === i.product;
@@ -660,7 +746,12 @@ export function isDealForSupplier(
 export function payDeal(dealId: string) {
   const state = readState();
   const deal = state.deals.find((d) => d.id === dealId);
-  if (!deal || deal.status !== "confirmed" || !deal.offerPrice || !deal.confirmedQty) {
+  if (
+    !deal ||
+    deal.status !== "confirmed" ||
+    !deal.offerPrice ||
+    !deal.confirmedQty
+  ) {
     return;
   }
 
@@ -703,7 +794,7 @@ export function payDeal(dealId: string) {
   });
 }
 
-export function requestTransport(dealId: string) {
+export function requestTransport(dealId: string, fee?: number) {
   const state = readState();
   writeState({
     ...state,
@@ -713,6 +804,8 @@ export function requestTransport(dealId: string) {
             ...d,
             status: "transport_open",
             transportOpenedAt: new Date().toISOString(),
+            transportOfferedFee: fee,
+            transportFee: fee,
           }
         : d
     ),
@@ -759,7 +852,9 @@ export function acceptTransportQuote(dealId: string, logisticsEmail: string) {
     ...state,
     deals: state.deals.map((d) => {
       if (d.id !== dealId) return d;
-      const quote = d.transportQuotes.find((q) => q.logisticsEmail === logisticsEmail);
+      const quote = d.transportQuotes.find(
+        (q) => q.logisticsEmail === logisticsEmail
+      );
       if (!quote) return d;
       return {
         ...d,
@@ -783,9 +878,7 @@ export function upsertInventory(
     writeState({
       ...state,
       inventory: state.inventory.map((row) =>
-        row.id === item.id
-          ? { ...row, ...item, id: item.id, publishedAt }
-          : row
+        row.id === item.id ? { ...row, ...item, id: item.id, publishedAt } : row
       ),
     });
     return item.id;
@@ -820,7 +913,9 @@ export function publishSellOffer(input: {
 }): SellOffer {
   const state = readState();
   const publishedAt = new Date().toISOString();
-  const existing = state.sellOffers.find((o) => o.listingId === input.listingId);
+  const existing = state.sellOffers.find(
+    (o) => o.listingId === input.listingId
+  );
   const offer: SellOffer = {
     id: existing?.id ?? uid("offer"),
     listingId: input.listingId,

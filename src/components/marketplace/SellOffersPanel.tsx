@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon, btn } from "@/lib/ui";
-import {
-  createBuyFromListing,
-  formatRwf,
-} from "@/lib/marketplaceStore";
+import { createBuyFromListing, formatRwf } from "@/lib/marketplaceStore";
 import { waitForAction } from "@/lib/actionDelay";
+import { formatApiError } from "@/lib/apiError";
+import {
+  hasDeliveryAddress,
+  profileHasDeliveryAddress,
+} from "@/lib/deliveryAddress";
+import { validateCoordinatesAgainstAddress } from "@/lib/validateRwandaCoordinates";
+import { CoordinateMismatchDialog } from "@/components/support/CoordinateMismatchDialog";
+import {
+  SupportTicketModal,
+  type SupportTicketPrefill,
+} from "@/components/support/SupportTicketModal";
 import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
 import {
   EmptyState,
@@ -19,8 +28,18 @@ import {
   type TradeResult,
 } from "@/components/marketplace/TradeResultModal";
 import { ActionOverlay, ButtonLoader } from "@/components/ActionLoader";
+import {
+  DeliveryAddressFields,
+  deliveryAddressFromLocation,
+  emptyDeliveryAddress,
+  formatDeliveryAddress,
+  type DeliveryAddressValue,
+} from "@/components/forms/DeliveryAddressFields";
+import { useAppDialog } from "@/hooks/useAppDialog";
 import { markSellOffersSeen } from "@/lib/sellOffersSeen";
 import { getSession } from "@/lib/session";
+import { authService } from "@/services/auth.service";
+import type { MeResponse } from "@/types/auth";
 import type { SellOffer } from "@/lib/marketplaceTypes";
 
 function initials(name: string) {
@@ -32,26 +51,162 @@ function initials(name: string) {
     .toUpperCase();
 }
 
+function toLocationPayload(address: DeliveryAddressValue) {
+  const latitude = address.latitude?.trim()
+    ? Number(address.latitude)
+    : undefined;
+  const longitude = address.longitude?.trim()
+    ? Number(address.longitude)
+    : undefined;
+  return {
+    province: address.province,
+    district: address.district,
+    sector: address.sector,
+    cell: address.cell,
+    village: address.village,
+    hood: address.hood?.trim() || undefined,
+    latitude:
+      latitude !== undefined && Number.isFinite(latitude)
+        ? latitude
+        : undefined,
+    longitude:
+      longitude !== undefined && Number.isFinite(longitude)
+        ? longitude
+        : undefined,
+  };
+}
+
 function BuyOfferModal({
   offer,
   onClose,
   onConfirm,
+  showError,
+  showSuccess,
 }: {
   offer: SellOffer;
   onClose: () => void;
   onConfirm: (qty: number, delivery: string) => void | Promise<void>;
+  showError: ReturnType<typeof useAppDialog>["showError"];
+  showSuccess: ReturnType<typeof useAppDialog>["showSuccess"];
 }) {
+  const router = useRouter();
   const [qty, setQty] = useState(String(offer.minOrder));
-  const [delivery, setDelivery] = useState("Kigali");
   const [loading, setLoading] = useState(false);
+  const [meLoading, setMeLoading] = useState(true);
+  const [me, setMe] = useState<MeResponse | null>(null);
+  const [addressMode, setAddressMode] = useState<"saved" | "new">("saved");
+  const [newAddress, setNewAddress] = useState<DeliveryAddressValue>(
+    emptyDeliveryAddress()
+  );
+  const [saveNewToProfile, setSaveNewToProfile] = useState(true);
+  const [mismatchOpen, setMismatchOpen] = useState(false);
+  const [mismatchMessage, setMismatchMessage] = useState("");
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpPrefill, setHelpPrefill] = useState<SupportTicketPrefill | null>(
+    null
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setMeLoading(true);
+      try {
+        const data = await authService.getMe();
+        if (cancelled) return;
+        setMe(data);
+        setAddressMode(profileHasDeliveryAddress(data) ? "saved" : "new");
+      } catch (err) {
+        if (!cancelled) {
+          await showError(formatApiError(err), {
+            title: "Could not load delivery address",
+          });
+        }
+      } finally {
+        if (!cancelled) setMeLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showError]);
+
+  const savedAddress = me?.profile?.location ?? null;
+  const hasSaved = profileHasDeliveryAddress(me);
+  const activeAddress: DeliveryAddressValue =
+    addressMode === "saved" && hasSaved
+      ? deliveryAddressFromLocation(savedAddress)
+      : newAddress;
+
+  const validateActiveCoordinates = async () => {
+    const lat = activeAddress.latitude?.trim()
+      ? Number(activeAddress.latitude)
+      : NaN;
+    const lng = activeAddress.longitude?.trim()
+      ? Number(activeAddress.longitude)
+      : NaN;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return true;
+    if (!activeAddress.village?.trim()) return true;
+
+    try {
+      const result = await validateCoordinatesAgainstAddress({
+        latitude: lat,
+        longitude: lng,
+        province: activeAddress.province,
+        district: activeAddress.district,
+        sector: activeAddress.sector,
+        cell: activeAddress.cell,
+        village: activeAddress.village,
+      });
+      if (result.ok) return true;
+      setMismatchMessage(
+        `${result.message} Fix the address, or request help from admin.`
+      );
+      setHelpPrefill({
+        category: "LOCATION_MISMATCH",
+        subject: "Delivery coordinates do not match selected village",
+        message:
+          "My GPS coordinates do not match the village I selected. Please help me correct my delivery address.",
+        context: {
+          summary: result.message,
+          selectedAddress: activeAddress,
+          lookup: result.lookup,
+          mismatches: result.mismatches,
+        },
+      });
+      setMismatchOpen(true);
+      return false;
+    } catch {
+      setMismatchMessage(
+        "Village boundary lookup failed. Fix the address, or request help from admin."
+      );
+      setHelpPrefill({
+        category: "LOCATION_MISMATCH",
+        subject: "Could not verify delivery coordinates",
+        message:
+          "Village boundary lookup failed while checking my delivery coordinates. Please help me verify my address.",
+        context: {
+          summary: "Village boundary lookup failed.",
+          selectedAddress: activeAddress,
+          latitude: lat,
+          longitude: lng,
+        },
+      });
+      setMismatchOpen(true);
+      return false;
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-100 grid place-items-center overflow-y-auto bg-[#08141cb8] p-4 backdrop-blur-sm sm:p-6">
-      <div className="relative my-auto w-full max-w-100 rounded-2.5 bg-white px-5 py-6 sm:px-7">
-        {loading ? <ActionOverlay label="Sending buy request…" /> : null}
+    <div className="fixed inset-0 z-100 grid place-items-center overflow-y-auto bg-soko-navy/72 p-4 backdrop-blur-sm sm:p-6">
+      <div className="relative my-auto w-full max-w-125 rounded-2.5 bg-white px-5 py-6 sm:px-7">
+        {loading || meLoading ? (
+          <ActionOverlay
+            label={meLoading ? "Loading address…" : "Sending buy request…"}
+          />
+        ) : null}
         <button
           type="button"
-          className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full border border-[#ddd] bg-white disabled:opacity-50"
+          className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full border border-soko-line bg-white disabled:opacity-50"
           onClick={onClose}
           disabled={loading}
           aria-label="Close buy modal"
@@ -64,15 +219,62 @@ function BuyOfferModal({
         <p className="mt-1 mb-4 text-[0.625rem] text-soko-muted">
           {offer.product} · {offer.grade} · {formatRwf(offer.pricePerUnit)}/tray
         </p>
+
+        {!meLoading && !hasSaved ? (
+          <div className="mb-4 rounded-1.25 border border-soko-line bg-soko-slate px-3.5 py-3">
+            <p className="m-0 text-[0.75rem] font-bold text-soko-ink">
+              Delivery address required
+            </p>
+            <p className="m-0 mt-1 text-[0.6875rem] text-soko-muted">
+              Add a delivery address below to place this buy request.
+            </p>
+            <button
+              type="button"
+              className={`${btn.text} mt-2 px-0 text-[0.6875rem]`}
+              onClick={() => router.push("/dashboard/account")}
+            >
+              Open Account settings
+            </button>
+          </div>
+        ) : null}
+
         <form
           className="grid gap-3"
           onSubmit={async (e) => {
             e.preventDefault();
-            if (loading) return;
+            if (loading || meLoading) return;
+
+            if (!hasDeliveryAddress(activeAddress)) {
+              await showError(
+                "Select a province and district for the delivery address.",
+                { title: "Delivery address required" }
+              );
+              return;
+            }
+
+            const coordsOk = await validateActiveCoordinates();
+            if (!coordsOk) return;
+
             setLoading(true);
-            await waitForAction();
-            await onConfirm(Number(qty) || offer.minOrder, delivery);
-            setLoading(false);
+            try {
+              if (addressMode === "new" && saveNewToProfile) {
+                const updated = await authService.updateMeProfile({
+                  location: toLocationPayload(activeAddress),
+                });
+                setMe(updated);
+              }
+              await waitForAction();
+              await onConfirm(
+                Number(qty) || offer.minOrder,
+                formatDeliveryAddress(activeAddress)
+              );
+            } catch (err) {
+              await showError(formatApiError(err), {
+                title: "Could not send buy request",
+              });
+            } finally {
+              setLoading(false);
+            }
           }}
         >
           <Field label="Quantity (trays)">
@@ -87,15 +289,67 @@ function BuyOfferModal({
               disabled={loading}
             />
           </Field>
-          <Field label="Delivery location">
-            <input
-              className={fieldClass}
-              value={delivery}
-              onChange={(e) => setDelivery(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </Field>
+
+          {hasSaved ? (
+            <div className="grid gap-2">
+              <p className="m-0 text-[0.625rem] font-bold tracking-wide text-soko-muted uppercase">
+                Delivery address
+              </p>
+              <label className="flex items-start gap-2 rounded-1.25 border border-soko-line px-3 py-2.5 text-xs">
+                <input
+                  type="radio"
+                  className="mt-0.5"
+                  name="sell-delivery-mode"
+                  checked={addressMode === "saved"}
+                  onChange={() => setAddressMode("saved")}
+                  disabled={loading}
+                />
+                <span>
+                  <strong className="block">Use my saved address</strong>
+                  <span className="mt-0.5 block text-soko-muted">
+                    {formatDeliveryAddress(savedAddress)}
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 rounded-1.25 border border-soko-line px-3 py-2.5 text-xs">
+                <input
+                  type="radio"
+                  className="mt-0.5"
+                  name="sell-delivery-mode"
+                  checked={addressMode === "new"}
+                  onChange={() => setAddressMode("new")}
+                  disabled={loading}
+                />
+                <span>
+                  <strong className="block">Use a different address</strong>
+                  <span className="mt-0.5 block text-soko-muted">
+                    Enter a new delivery location for this order.
+                  </span>
+                </span>
+              </label>
+            </div>
+          ) : null}
+
+          {addressMode === "new" || !hasSaved ? (
+            <div className="rounded-1.25 border border-soko-line p-3">
+              <DeliveryAddressFields
+                value={newAddress}
+                onChange={setNewAddress}
+                disabled={loading}
+                required
+              />
+              <label className="mt-3 flex items-center gap-2 text-xs text-soko-ink">
+                <input
+                  type="checkbox"
+                  checked={saveNewToProfile}
+                  onChange={(e) => setSaveNewToProfile(e.target.checked)}
+                  disabled={loading}
+                />
+                Save this as my delivery address
+              </label>
+            </div>
+          ) : null}
+
           <p className="m-0 text-[0.625rem] text-soko-muted">
             Estimated total{" "}
             <b className="text-soko-ink">
@@ -105,7 +359,7 @@ function BuyOfferModal({
           <button
             type="submit"
             className={`${btn.buyCompact} w-full sm:px-5.5 sm:py-3.5`}
-            disabled={loading}
+            disabled={loading || meLoading}
           >
             {loading ? (
               <ButtonLoader label="Sending…" />
@@ -116,6 +370,38 @@ function BuyOfferModal({
             )}
           </button>
         </form>
+
+        <CoordinateMismatchDialog
+          open={mismatchOpen}
+          message={mismatchMessage}
+          onClose={() => setMismatchOpen(false)}
+          onFixAddress={() => {
+            setMismatchOpen(false);
+            setAddressMode("new");
+            if (hasSaved) {
+              setNewAddress(deliveryAddressFromLocation(savedAddress));
+            }
+          }}
+          onRequestHelp={() => {
+            setMismatchOpen(false);
+            setHelpOpen(true);
+          }}
+        />
+
+        <SupportTicketModal
+          open={helpOpen}
+          onClose={() => setHelpOpen(false)}
+          me={me}
+          prefill={helpPrefill}
+          onSubmitted={(ticketNumber) => {
+            void showSuccess(`Support ticket ${ticketNumber} sent to admin.`, {
+              title: "Help requested",
+            });
+          }}
+          onError={(message) => {
+            void showError(message, { title: "Could not send ticket" });
+          }}
+        />
       </div>
     </div>
   );
@@ -124,10 +410,11 @@ function BuyOfferModal({
 export function SellOffersPanel() {
   const { sellOffers } = useMarketplace();
   const session = getSession();
+  const { dialog, showError, showSuccess } = useAppDialog();
   const email = session?.email ?? "";
-  const [roleFilter, setRoleFilter] = useState<"all" | "supplier" | "aggregator">(
-    "all"
-  );
+  const [roleFilter, setRoleFilter] = useState<
+    "all" | "supplier" | "aggregator"
+  >("all");
   const [buying, setBuying] = useState<SellOffer | null>(null);
   const [tradeResult, setTradeResult] = useState<TradeResult | null>(null);
 
@@ -152,7 +439,7 @@ export function SellOffersPanel() {
           title="Confirmed sell offers"
           subtitle="Only products a supplier or aggregator confirmed with Sell → Confirm sell order."
           action={
-            <div className="inline-flex rounded-full bg-[#e8ebe6] p-1">
+            <div className="inline-flex rounded-full bg-soko-slate p-1">
               {(
                 [
                   ["all", "All"],
@@ -166,7 +453,7 @@ export function SellOffersPanel() {
                   onClick={() => setRoleFilter(value)}
                   className={`rounded-full border-0 px-3.5 py-1.5 text-[0.6875rem] font-bold ${
                     roleFilter === value
-                      ? "bg-soko-green text-white"
+                      ? "bg-soko-navy text-white"
                       : "bg-transparent text-soko-muted"
                   }`}
                 >
@@ -183,11 +470,11 @@ export function SellOffersPanel() {
               {offers.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-1.25 border border-[#e5e4df] px-3.5 py-3.5"
+                  className="rounded-1.25 border border-soko-line px-3.5 py-3.5"
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <span className="relative grid h-9 w-9 place-items-center rounded-full bg-[#e8ecf0] text-[0.6875rem] font-extrabold text-soko-green">
+                      <span className="relative grid h-9 w-9 place-items-center rounded-full bg-soko-slate text-[0.6875rem] font-extrabold text-soko-navy">
                         {initials(item.ownerName)}
                       </span>
                       <div>
@@ -199,7 +486,7 @@ export function SellOffersPanel() {
                         </small>
                       </div>
                     </div>
-                    <span className="rounded-full bg-[#eef1f4] px-2 py-0.75 text-[0.5rem] font-bold tracking-wide text-soko-green uppercase">
+                    <span className="rounded-full bg-soko-slate px-2 py-0.75 text-[0.5rem] font-bold tracking-wide text-soko-navy uppercase">
                       {item.ownerRole}
                     </span>
                   </div>
@@ -237,6 +524,8 @@ export function SellOffersPanel() {
         <BuyOfferModal
           offer={buying}
           onClose={() => setBuying(null)}
+          showError={showError}
+          showSuccess={showSuccess}
           onConfirm={async (qty, delivery) => {
             if (!session) return;
             const deal = createBuyFromListing({
@@ -253,7 +542,7 @@ export function SellOffersPanel() {
               kind: "buy",
               title: "Buy request sent",
               message:
-                "The seller can confirm or reject this request from Buy Requests.",
+                "The seller can confirm or reject this request from Deals.",
               details: [
                 `${deal.product}`,
                 `${deal.quantity} trays · ${formatRwf(deal.targetPrice)}/tray`,
@@ -269,6 +558,7 @@ export function SellOffersPanel() {
         result={tradeResult}
         onClose={() => setTradeResult(null)}
       />
+      {dialog}
     </>
   );
 }

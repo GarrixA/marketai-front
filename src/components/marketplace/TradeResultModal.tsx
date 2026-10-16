@@ -25,7 +25,7 @@ export function TradeResultModal({ result, onClose }: TradeResultModalProps) {
           <motion.button
             type="button"
             aria-label="Close confirmation"
-            className="absolute inset-0 border-0 bg-[#08141cb8] backdrop-blur-sm"
+            className="absolute inset-0 border-0 bg-soko-navy/72 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -40,11 +40,15 @@ export function TradeResultModal({ result, onClose }: TradeResultModalProps) {
             initial={{ opacity: 0, scale: 0.92, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ type: "tween", duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            transition={{
+              type: "tween",
+              duration: 0.25,
+              ease: [0.22, 1, 0.36, 1],
+            }}
           >
             <button
               type="button"
-              className="absolute top-4 right-4 grid h-9 w-9 place-items-center rounded-full border border-[#ddd] bg-white"
+              className="absolute top-4 right-4 grid h-9 w-9 place-items-center rounded-full border border-soko-line bg-white"
               onClick={onClose}
               aria-label="Close"
             >
@@ -54,8 +58,8 @@ export function TradeResultModal({ result, onClose }: TradeResultModalProps) {
             <span
               className={`mx-auto grid h-14 w-14 place-items-center rounded-full ${
                 isBuy
-                  ? "bg-[#dcfce7] text-[#16a34a]"
-                  : "bg-[#fee2e2] text-[#dc2626]"
+                  ? "bg-[#fff4e5] text-soko-cta-hover"
+                  : "bg-soko-slate text-soko-navy"
               }`}
             >
               <Icon name="check" size={28} />
@@ -63,7 +67,7 @@ export function TradeResultModal({ result, onClose }: TradeResultModalProps) {
 
             <p
               className={`mt-4 mb-0 text-[0.625rem] font-extrabold tracking-[0.12rem] uppercase ${
-                isBuy ? "text-[#16a34a]" : "text-[#dc2626]"
+                isBuy ? "text-soko-cta-hover" : "text-soko-navy"
               }`}
             >
               {isBuy ? "Buy confirmed" : "Sell confirmed"}
@@ -79,7 +83,7 @@ export function TradeResultModal({ result, onClose }: TradeResultModalProps) {
             </p>
 
             {result.details && result.details.length > 0 ? (
-              <ul className="mt-4 mb-0 space-y-1.5 rounded-1.25 bg-[#f5f5f1] px-4 py-3 text-left text-[0.6875rem] text-soko-ink">
+              <ul className="mt-4 mb-0 space-y-1.5 rounded-1.25 bg-soko-slate px-4 py-3 text-left text-[0.6875rem] text-soko-ink">
                 {result.details.map((line) => (
                   <li key={line} className="flex gap-2">
                     <Icon name="check" size={14} className="mt-0.5 shrink-0" />

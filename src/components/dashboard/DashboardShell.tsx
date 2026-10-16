@@ -1,22 +1,30 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Icon, Logo, btn } from "@/lib/ui";
-import { clearSession, getSession, type DashboardRole } from "@/lib/session";
+import { UserAvatar } from "@/components/UserAvatar";
+import { ActionButton, Icon, Logo } from "@/lib/ui";
+import { getSession, patchSession, type DashboardRole } from "@/lib/session";
+import { authService } from "@/services/auth.service";
 import { MarketplaceProvider } from "@/components/marketplace/MarketplaceProvider";
-import { RecordStockModal } from "@/components/marketplace/RecordStockModal";
+import { ProductFormModal } from "@/components/marketplace/ProductFormModal";
 import {
   TradeResultModal,
   type TradeResult,
 } from "@/components/marketplace/TradeResultModal";
-// import { MOCK_USERS } from "@/lib/mockUsers";
-import { formatRwf } from "@/lib/marketplaceStore";
+import { formatRwandaLocation } from "@/components/forms/RwandaLocationFields";
 import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
 import { NavBadge } from "@/components/dashboard/NavBadge";
 import { getNavBadges } from "@/lib/navBadges";
+import { mapApiDealToLocal } from "@/lib/mapApiDeal";
 import { subscribeSellOffersSeen } from "@/lib/sellOffersSeen";
+import {
+  liveDealListOptions,
+  useListIncomingDealsQuery,
+  useListMyDealsQuery,
+  useListTransportDealsQuery,
+} from "@/store/actions/deals";
 import {
   SECTION_ICON,
   SECTION_PATH,
@@ -24,6 +32,7 @@ import {
   pathForSection,
   roleCanAccess,
   sectionFromPath,
+  utilityPageFromPath,
   type DashboardSection,
 } from "@/lib/dashboardNav";
 
@@ -35,56 +44,69 @@ const workspaceLabel: Record<DashboardRole, string> = {
   admin: "Operations",
 };
 
-// function DemoAccountsHint() {
-//   return (
-//     <details className="rounded-1.25 border border-[#e5e4df] bg-white px-3.5 py-2.5 text-[0.625rem] text-soko-muted">
-//       <summary className="cursor-pointer font-bold text-soko-ink">
-//         Demo accounts (shared deal state)
-//       </summary>
-//       <ul className="mt-2 mb-0 space-y-1 pl-4">
-//         {MOCK_USERS.map((u) => (
-//           <li key={u.email}>
-//             <b className="text-soko-ink">{u.role}</b>: {u.email} / {u.password}
-//           </li>
-//         ))}
-//       </ul>
-//     </details>
-//   );
-// }
-
 function SidebarNav({
   role,
   active,
   onLeaveWorkspace,
   onLogout,
   onNavigate,
+  displayName,
+  businessName,
+  avatarUrl,
 }: {
   role: DashboardRole;
-  active: DashboardSection;
+  active: DashboardSection | null;
   onLeaveWorkspace: () => void;
   onLogout: () => void;
   onNavigate?: () => void;
+  displayName: string;
+  businessName: string;
+  avatarUrl?: string | null;
 }) {
   const router = useRouter();
   const session = getSession();
   const { deals, inventory, sellOffers } = useMarketplace();
   const [, setSeenTick] = useState(0);
-  const displayName = session?.name ?? "Aline Kabera";
-  const initials = displayName
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   useEffect(() => subscribeSellOffersSeen(() => setSeenTick((n) => n + 1)), []);
+
+  const canFetchMine =
+    role === "buyer" || role === "aggregator" || role === "admin";
+  const canFetchIncoming =
+    role === "supplier" || role === "aggregator" || role === "admin";
+  const canFetchTransport = role === "logistics" || role === "admin";
+  const { data: myApiDeals = [] } = useListMyDealsQuery(undefined, {
+    ...liveDealListOptions,
+    skip: !canFetchMine,
+  });
+  const { data: incomingApiDeals = [] } = useListIncomingDealsQuery(undefined, {
+    ...liveDealListOptions,
+    skip: !canFetchIncoming,
+  });
+  const { data: transportApiDeals = [] } = useListTransportDealsQuery(
+    undefined,
+    {
+      ...liveDealListOptions,
+      skip: !canFetchTransport,
+    }
+  );
+  const apiDeals = useMemo(
+    () => [
+      ...myApiDeals.map(mapApiDealToLocal),
+      ...incomingApiDeals.map(mapApiDealToLocal),
+      ...transportApiDeals.map(mapApiDealToLocal),
+    ],
+    [myApiDeals, incomingApiDeals, transportApiDeals]
+  );
 
   const badges = getNavBadges({
     role,
     email: session?.email ?? "",
+    userId: session?.userId,
     deals,
     inventory,
     sellOffers,
+    apiDeals,
   });
 
   const go = (section: DashboardSection) => {
@@ -118,8 +140,8 @@ function SidebarNav({
               type="button"
               className={`flex w-full items-center gap-3 rounded-1.25 border-0 px-2.75 py-2.5 text-left text-xs ${
                 isActive
-                  ? "bg-[#f5f5f1] text-soko-ink"
-                  : "bg-transparent text-soko-muted hover:bg-[#f5f5f1] hover:text-soko-ink"
+                  ? "bg-soko-slate text-soko-ink"
+                  : "bg-transparent text-soko-muted hover:bg-soko-slate hover:text-soko-ink"
               }`}
               onClick={() => go(item)}
               whileHover={count > 0 ? { x: 2 } : undefined}
@@ -152,7 +174,7 @@ function SidebarNav({
       </nav>
       <button
         type="button"
-        className="mt-auto flex items-center gap-3 border-0 border-t border-[#e5e4df] bg-transparent px-2.75 pt-4.25 text-left text-xs text-soko-muted hover:text-soko-ink"
+        className="mt-auto flex items-center gap-3 border-0 border-t border-soko-line bg-transparent px-2.75 pt-4.25 text-left text-xs text-soko-muted hover:text-soko-ink"
         onClick={() => {
           onLeaveWorkspace();
           onNavigate?.();
@@ -161,15 +183,20 @@ function SidebarNav({
         <Icon name="arrow" className="rotate-180" />
         <span>Public marketplace</span>
       </button>
-      <div className="mt-3 border-t border-[#e5e4df] px-2 pt-3.25">
+      <div className="mt-3 border-t border-soko-line px-2 pt-3.25">
         <div className="flex items-center gap-2.5">
-          <span className="grid h-7.5 w-7.5 place-items-center rounded-full bg-[#f5f5f1] text-[0.625rem] font-extrabold text-soko-ink">
-            {initials}
-          </span>
-          <div>
-            <strong className="block text-[0.6875rem]">{displayName}</strong>
-            <small className="block text-[0.5625rem] text-soko-muted">
-              {session?.businessName ?? "Verified account"}
+          <UserAvatar
+            name={displayName}
+            avatarUrl={avatarUrl}
+            size="sm"
+            fallback="initials"
+          />
+          <div className="min-w-0">
+            <strong className="block truncate text-[0.6875rem] text-soko-ink">
+              {displayName}
+            </strong>
+            <small className="block truncate text-[0.5625rem] text-soko-muted">
+              {businessName || "Verified account"}
             </small>
           </div>
         </div>
@@ -196,13 +223,19 @@ function MobileMenuModal({
   active,
   onLeaveWorkspace,
   onLogout,
+  displayName,
+  businessName,
+  avatarUrl,
 }: {
   open: boolean;
   onClose: () => void;
   role: DashboardRole;
-  active: DashboardSection;
+  active: DashboardSection | null;
   onLeaveWorkspace: () => void;
   onLogout: () => void;
+  displayName: string;
+  businessName: string;
+  avatarUrl?: string | null;
 }) {
   return (
     <AnimatePresence>
@@ -211,7 +244,7 @@ function MobileMenuModal({
           <motion.button
             type="button"
             aria-label="Close menu"
-            className="absolute inset-0 border-0 bg-[#08141cb8]"
+            className="absolute inset-0 border-0 bg-soko-navy/72"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -231,7 +264,7 @@ function MobileMenuModal({
           >
             <button
               type="button"
-              className="absolute top-4 right-4 grid h-9 w-9 place-items-center rounded-full border border-[#ddd] bg-white"
+              className="absolute top-4 right-4 grid h-9 w-9 place-items-center rounded-full border border-soko-line bg-white"
               onClick={onClose}
               aria-label="Close menu"
             >
@@ -242,12 +275,193 @@ function MobileMenuModal({
               active={active}
               onLeaveWorkspace={onLeaveWorkspace}
               onLogout={onLogout}
+              displayName={displayName}
+              businessName={businessName}
+              avatarUrl={avatarUrl}
               onNavigate={onClose}
             />
           </motion.aside>
         </div>
       ) : null}
     </AnimatePresence>
+  );
+}
+
+const profileMenuEase = [0.22, 1, 0.36, 1] as const;
+
+const profileMenuPanel = {
+  hidden: {
+    opacity: 0,
+    x: 28,
+    scale: 0.98,
+    transition: { duration: 0.16, ease: profileMenuEase },
+  },
+  show: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: {
+      duration: 0.28,
+      ease: profileMenuEase,
+      when: "beforeChildren" as const,
+      staggerChildren: 0.055,
+      delayChildren: 0.04,
+    },
+  },
+  exit: {
+    opacity: 0,
+    x: 24,
+    scale: 0.98,
+    transition: {
+      duration: 0.18,
+      ease: profileMenuEase,
+      when: "afterChildren" as const,
+      staggerChildren: 0.035,
+      staggerDirection: -1,
+    },
+  },
+};
+
+const profileMenuItem = {
+  hidden: { opacity: 0, x: 18 },
+  show: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.24, ease: profileMenuEase },
+  },
+  exit: {
+    opacity: 0,
+    x: 14,
+    transition: { duration: 0.12, ease: profileMenuEase },
+  },
+};
+
+function ProfileMenu({
+  onLogout,
+  displayName,
+  avatarUrl,
+}: {
+  onLogout: () => void;
+  displayName: string;
+  avatarUrl?: string | null;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onPointer = (e: MouseEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onPointer);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onPointer);
+    };
+  }, [open]);
+
+  const go = (path: string) => {
+    setOpen(false);
+    router.push(path);
+  };
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-soko-line bg-soko-slate text-soko-ink hover:bg-white"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Open profile menu"
+        aria-expanded={open}
+        aria-haspopup="menu"
+      >
+        <UserAvatar
+          name={displayName}
+          avatarUrl={avatarUrl}
+          size="md"
+          fallback="icon"
+          className="border-0"
+        />
+      </button>
+
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            role="menu"
+            aria-label="Profile"
+            className="absolute top-[calc(100%+0.5rem)] right-0 z-50 w-64 overflow-hidden rounded-2.5 border border-soko-line bg-white text-soko-ink shadow-lg"
+            variants={profileMenuPanel}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+          >
+            <motion.div
+              variants={profileMenuItem}
+              className="flex items-center gap-2.5 border-b border-soko-line px-4 py-3"
+            >
+              <UserAvatar
+                name={displayName}
+                avatarUrl={avatarUrl}
+                size="md"
+                fallback="initials"
+              />
+              <div className="min-w-0">
+                <strong className="block truncate text-[0.8125rem]">
+                  {displayName}
+                </strong>
+                <small className="block truncate text-[0.625rem] text-soko-muted">
+                  My account
+                </small>
+              </div>
+            </motion.div>
+            <motion.button
+              type="button"
+              role="menuitem"
+              variants={profileMenuItem}
+              className="mx-1.5 mt-1.5 flex items-center gap-3 rounded-1.25 border-0 bg-transparent px-3 py-2.5 text-left text-xs text-soko-ink hover:bg-soko-slate"
+              onClick={() => go("/dashboard/account")}
+            >
+              <Icon name="user" size={16} className="text-soko-muted" />
+              <span className="flex-1 font-medium">My account</span>
+              <Icon name="chevron" size={14} className="text-soko-muted" />
+            </motion.button>
+            <motion.button
+              type="button"
+              role="menuitem"
+              variants={profileMenuItem}
+              className="mx-1.5 flex items-center gap-3 rounded-1.25 border-0 bg-transparent px-3 py-2.5 text-left text-xs text-soko-ink hover:bg-soko-slate"
+              onClick={() => go("/dashboard/settings")}
+            >
+              <Icon name="settings" size={16} className="text-soko-muted" />
+              <span className="flex-1 font-medium">Settings</span>
+              <Icon name="chevron" size={14} className="text-soko-muted" />
+            </motion.button>
+            <motion.div
+              variants={profileMenuItem}
+              className="mx-1.5 my-1 border-t border-soko-line"
+            />
+            <motion.button
+              type="button"
+              role="menuitem"
+              variants={profileMenuItem}
+              className="mx-1.5 mb-1.5 flex items-center gap-3 rounded-1.25 border-0 bg-transparent px-3 py-2.5 text-left text-xs font-medium text-[#b42318] hover:bg-[#fef3f2]"
+              onClick={() => {
+                setOpen(false);
+                onLogout();
+              }}
+            >
+              <Icon name="arrow" className="rotate-180" size={16} />
+              <span>Logout</span>
+            </motion.button>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -264,12 +478,43 @@ function MobileMenuButton({
 
   useEffect(() => subscribeSellOffersSeen(() => setSeenTick((n) => n + 1)), []);
 
+  const canFetchMine =
+    role === "buyer" || role === "aggregator" || role === "admin";
+  const canFetchIncoming =
+    role === "supplier" || role === "aggregator" || role === "admin";
+  const canFetchTransport = role === "logistics" || role === "admin";
+  const { data: myApiDeals = [] } = useListMyDealsQuery(undefined, {
+    ...liveDealListOptions,
+    skip: !canFetchMine,
+  });
+  const { data: incomingApiDeals = [] } = useListIncomingDealsQuery(undefined, {
+    ...liveDealListOptions,
+    skip: !canFetchIncoming,
+  });
+  const { data: transportApiDeals = [] } = useListTransportDealsQuery(
+    undefined,
+    {
+      ...liveDealListOptions,
+      skip: !canFetchTransport,
+    }
+  );
+  const apiDeals = useMemo(
+    () => [
+      ...myApiDeals.map(mapApiDealToLocal),
+      ...incomingApiDeals.map(mapApiDealToLocal),
+      ...transportApiDeals.map(mapApiDealToLocal),
+    ],
+    [myApiDeals, incomingApiDeals, transportApiDeals]
+  );
+
   const badges = getNavBadges({
     role,
     email: session?.email ?? "",
+    userId: session?.userId,
     deals,
     inventory,
     sellOffers,
+    apiDeals,
   });
   const pending = Object.entries(badges)
     .filter(([section]) => section !== "Overview")
@@ -278,11 +523,9 @@ function MobileMenuButton({
   return (
     <motion.button
       type="button"
-      className="relative grid h-9 w-9 place-items-center rounded-md border border-[#e5e4df] bg-white md:hidden"
+      className="relative grid h-9 w-9 place-items-center rounded-md border border-soko-line bg-white text-soko-ink md:hidden"
       onClick={onOpen}
-      aria-label={
-        pending > 0 ? `Open menu, ${pending} pending` : "Open menu"
-      }
+      aria-label={pending > 0 ? `Open menu, ${pending} pending` : "Open menu"}
       whileTap={{ scale: 0.94 }}
     >
       <Icon name="menu" />
@@ -315,16 +558,69 @@ export function DashboardShell({
   const router = useRouter();
   const pathname = usePathname();
   const session = getSession();
-  const active = sectionFromPath(pathname);
+  const utilityPage = utilityPageFromPath(pathname);
+  const active = utilityPage ? null : sectionFromPath(pathname);
   const [stockOpen, setStockOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [tradeResult, setTradeResult] = useState<TradeResult | null>(null);
+  const [displayName, setDisplayName] = useState(
+    session?.name ?? "Aline Kabera"
+  );
+  const [businessName, setBusinessName] = useState(
+    session?.businessName ?? "Verified account"
+  );
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    session?.avatarUrl ?? null
+  );
 
   useEffect(() => {
-    if (!roleCanAccess(role, active)) {
+    if (utilityPage) return;
+    if (active && !roleCanAccess(role, active)) {
       router.replace(SECTION_PATH.Overview);
     }
-  }, [role, active, router]);
+  }, [role, active, router, utilityPage]);
+
+  useEffect(() => {
+    const syncFromSession = () => {
+      const next = getSession();
+      if (!next) return;
+      setDisplayName(next.name);
+      setBusinessName(next.businessName || "Verified account");
+      setAvatarUrl(next.avatarUrl ?? null);
+    };
+    window.addEventListener("soko-session", syncFromSession);
+    return () => window.removeEventListener("soko-session", syncFromSession);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await authService.getMe();
+        if (cancelled) return;
+        const name = `${me.firstName} ${me.lastName}`.trim() || displayName;
+        const nextBusiness =
+          me.profile?.businessName || me.profile?.displayName || name;
+        const nextAvatar = me.profile?.avatarUrl ?? null;
+        setDisplayName(name);
+        setBusinessName(nextBusiness);
+        setAvatarUrl(nextAvatar);
+        patchSession({
+          name,
+          email: me.email,
+          phone: me.phone,
+          businessName: nextBusiness,
+          avatarUrl: nextAvatar,
+        });
+      } catch {
+        // Keep local session values if /me is unavailable.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh once on mount
+  }, []);
 
   const today = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
@@ -334,7 +630,7 @@ export function DashboardShell({
 
   const goToMarketplace = () => router.push("/");
   const logout = () => {
-    clearSession();
+    authService.logout();
     router.push("/");
   };
 
@@ -354,28 +650,33 @@ export function DashboardShell({
 
   const onPrimary = () => {
     if (canRecord) {
+      if (active !== "Products") {
+        router.push(pathForSection("Products"));
+      }
       setStockOpen(true);
       return;
     }
     if (role === "logistics") router.push(pathForSection("Transport"));
-    else if (role === "buyer") router.push(pathForSection("Sell Offers"));
     else router.push(pathForSection("Products"));
   };
 
   return (
     <MarketplaceProvider>
-      <div className="flex min-h-screen bg-[#f5f5f1]">
-        <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r border-[#e5e4df] bg-white px-4 py-6.25 text-soko-ink md:flex">
+      <div className="flex min-h-screen bg-soko-slate">
+        <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r border-soko-line bg-white px-4 py-6.25 text-soko-ink md:flex">
           <SidebarNav
             role={role}
             active={active}
             onLeaveWorkspace={goToMarketplace}
             onLogout={logout}
+            displayName={displayName}
+            businessName={businessName}
+            avatarUrl={avatarUrl}
           />
         </aside>
 
         <div className="w-full md:ml-60 md:w-[calc(100%-240px)]">
-          <header className="sticky top-0 z-5 flex h-17 items-center gap-3 border-b border-[#dddeda] bg-white px-4 sm:px-6 md:px-8">
+          <header className="sticky top-0 z-5 flex h-17 items-center gap-3 border-b border-soko-line bg-white px-4 text-soko-ink sm:px-6 md:px-8">
             <MobileMenuButton role={role} onOpen={() => setMenuOpen(true)} />
             <div className="min-w-0">
               <span className="block text-[0.5625rem] text-soko-muted">
@@ -386,9 +687,11 @@ export function DashboardShell({
               </strong>
             </div>
             <div className="ml-auto flex items-center gap-3">
-              <span className="hidden rounded-full bg-[#eef1f4] px-2.5 py-1 text-[0.5625rem] font-bold text-soko-green sm:inline">
-                MVP showcase
-              </span>
+              <ProfileMenu
+                onLogout={logout}
+                displayName={displayName}
+                avatarUrl={avatarUrl}
+              />
             </div>
           </header>
 
@@ -402,51 +705,75 @@ export function DashboardShell({
                   {today}
                 </p>
                 <h1 className="my-1.5 font-display text-[1.375rem] font-bold sm:text-[1.6875rem]">
-                  {active === "Overview"
-                    ? `Good morning, ${session?.name?.split(" ")[0] ?? "there"}.`
-                    : active}
+                  {utilityPage === "account"
+                    ? "My account"
+                    : utilityPage === "settings"
+                      ? "Settings"
+                      : active === "Overview"
+                        ? `Good morning, ${displayName.split(" ")[0] || "there"}.`
+                        : active}
                 </h1>
                 <span className="text-xs text-soko-muted">
-                  {active === "Overview"
-                    ? role === "aggregator"
-                      ? "Buy and sell from one workspace — market, payments, and transport."
-                      : "Analytics first, then move deals through the MVP loop."
-                    : active === "Products"
-                      ? role === "aggregator"
-                        ? "Use Buy to source stock, Sell to manage your listings."
-                        : role === "supplier"
-                          ? "Your sell listings — tap Sell to update stock."
-                          : "Buy eggs from suppliers and aggregators."
-                      : active === "Sell Offers"
-                        ? "New listings from suppliers and aggregators — review and buy."
-                        : `Manage ${active.toLowerCase()} for the demo marketplace.`}
+                  {utilityPage === "account"
+                    ? "View your profile details and manage account security."
+                    : utilityPage === "settings"
+                      ? "Workspace preferences for this browser."
+                      : active === "Overview"
+                        ? role === "aggregator"
+                          ? "Buy and sell from one workspace — market, payments, and transport."
+                          : "Live catalog and deal activity from the marketplace."
+                        : active === "Products" && role === "admin"
+                          ? "Listings, availability, who is selling, and listed value."
+                          : active === "Products"
+                            ? role === "aggregator"
+                              ? "Manage your products, then buy or sell on the market."
+                              : role === "supplier"
+                                ? "Create and manage your products — availability and location included."
+                                : "Buy eggs from suppliers and aggregators."
+                            : active === "Sell Offers"
+                              ? "New listings from suppliers and aggregators — review and buy."
+                              : active === "Deals" && role === "admin"
+                                ? "Volume, status, where each deal is going, and who owns both sides."
+                                : active === "Users"
+                                  ? "Create accounts and assign platform roles."
+                                  : active === "Support"
+                                    ? "Review help requests from buyers and sellers."
+                                    : active === "Orders" &&
+                                        role === "aggregator"
+                                      ? "Orders for products you sold, and purchases you made."
+                                      : active === "Income"
+                                        ? "Delivery fees credited after a buyer confirms receipt."
+                                        : `Manage ${(active ?? "workspace").toLowerCase()} for the demo marketplace.`}
                 </span>
               </div>
-              <button
-                type="button"
-                className={`${
-                  canRecord
-                    ? btn.sellCompact
-                    : role === "buyer"
-                      ? btn.buyCompact
-                      : btn.primaryCompact
-                } w-full sm:w-auto sm:px-5.5 sm:py-3.5`}
-                onClick={onPrimary}
-              >
-                {canRecord
-                  ? "List for sale"
-                  : role === "logistics"
-                    ? "View transport"
-                    : role === "buyer"
-                      ? "View sell offers"
-                      : "Browse products"}{" "}
-                <Icon name="arrow" />
-              </button>
+              {!utilityPage && active !== "Users" ? (
+                <ActionButton
+                  variant={
+                    canRecord ? "sell" : role === "buyer" ? "buy" : "primary"
+                  }
+                  size="md"
+                  icon={
+                    canRecord
+                      ? "arrow"
+                      : role === "logistics"
+                        ? "truck"
+                        : role === "buyer"
+                          ? "cart"
+                          : "box"
+                  }
+                  iconPosition="right"
+                  fullWidth
+                  className="sm:w-auto"
+                  onClick={onPrimary}
+                >
+                  {canRecord
+                    ? "List for sale"
+                    : role === "logistics"
+                      ? "View transport"
+                      : "Browse products"}
+                </ActionButton>
+              ) : null}
             </div>
-
-            {/* <div className="mb-4.25">
-              <DemoAccountsHint />
-            </div> */}
 
             {children}
           </main>
@@ -460,27 +787,34 @@ export function DashboardShell({
         active={active}
         onLeaveWorkspace={goToMarketplace}
         onLogout={logout}
+        displayName={displayName}
+        businessName={businessName}
+        avatarUrl={avatarUrl}
       />
-      <RecordStockModal
-        open={stockOpen}
-        onClose={() => setStockOpen(false)}
-        onSuccess={(result) => {
-          setTradeResult({
-            kind: "sell",
-            title: result.isUpdate
-              ? "Sell order confirmed"
-              : "Listing published",
-            message: result.isUpdate
-              ? "Your sell offer is live for buyers under Sell Offers."
-              : "Your product is now live for buyers under Sell Offers.",
-            details: [
-              `${result.product} · ${result.grade}`,
-              `${result.quantity} trays @ ${formatRwf(result.pricePerUnit)}/tray`,
-              result.location,
-            ],
-          });
-        }}
-      />
+      {canRecord ? (
+        <ProductFormModal
+          open={stockOpen}
+          onClose={() => setStockOpen(false)}
+          onSuccess={(saved, isUpdate) => {
+            if (active !== "Products") {
+              router.push(pathForSection("Products"));
+            }
+            setTradeResult({
+              kind: "sell",
+              title: isUpdate ? "Product updated" : "Listed for sale",
+              message: isUpdate
+                ? "Your product changes are live on the sell tab."
+                : "Your product is now visible on your sell tab.",
+              details: [
+                `${saved.name}${saved.grade ? ` · ${saved.grade}` : ""}`,
+                `${Number(saved.price || 0).toLocaleString("en-RW")} RWF / ${saved.unit.toLowerCase()}`,
+                `${saved.availableQuantity} ${saved.unit}`,
+                formatRwandaLocation(saved.location),
+              ],
+            });
+          }}
+        />
+      ) : null}
       <TradeResultModal
         result={tradeResult}
         onClose={() => setTradeResult(null)}

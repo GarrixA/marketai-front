@@ -1,15 +1,23 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Icon, btn } from "@/lib/ui";
+import { useMemo, useState } from "react";
+import { btn } from "@/lib/ui";
 import {
   formatRwf,
   isDealForSupplier,
-  payDeal,
-  requestTransport,
-  acceptTransportQuote,
+  isRfqDeal,
 } from "@/lib/marketplaceStore";
-import { waitForAction } from "@/lib/actionDelay";
+import {
+  ConfirmTransportButton,
+  RequestTransportForm,
+  deliveryPriceNote,
+} from "@/components/marketplace/TransportActions";
+import {
+  FulfillmentSteps,
+  isFulfillmentStatus,
+} from "@/components/marketplace/FulfillmentSteps";
+import { PayDealDialog } from "@/components/marketplace/PayDealDialog";
+import { mapApiDealToLocal } from "@/lib/mapApiDeal";
 import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
 import { ConfirmDealForm } from "@/components/marketplace/ConfirmDealForm";
 import {
@@ -17,36 +25,20 @@ import {
   Panel,
   StatusBadge,
 } from "@/components/marketplace/uiBits";
-import { ButtonLoader } from "@/components/ActionLoader";
 import { getSession } from "@/lib/session";
+import {
+  liveDealListOptions,
+  useListIncomingDealsQuery,
+  useListMyDealsQuery,
+} from "@/store/actions/deals";
+import type { Deal } from "@/lib/marketplaceTypes";
 
-function BusyButton({
-  className,
-  label,
-  busyLabel,
-  onClick,
-}: {
-  className: string;
-  label: ReactNode;
-  busyLabel: string;
-  onClick: () => void;
-}) {
-  const [loading, setLoading] = useState(false);
-  return (
-    <button
-      type="button"
-      className={className}
-      disabled={loading}
-      onClick={async () => {
-        if (loading) return;
-        setLoading(true);
-        await waitForAction();
-        onClick();
-        setLoading(false);
-      }}
-    >
-      {loading ? <ButtonLoader label={busyLabel} /> : label}
-    </button>
+function mergeDeals(local: Deal[], remote: Deal[]) {
+  const byId = new Map<string, Deal>();
+  for (const deal of local) byId.set(deal.id, deal);
+  for (const deal of remote) byId.set(deal.id, deal);
+  return Array.from(byId.values()).sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
   );
 }
 
@@ -58,53 +50,125 @@ export function DealsPanel({
   const { deals, inventory } = useMarketplace();
   const session = getSession();
   const email = session?.email ?? "";
+  const userId = session?.userId;
+  const role = session?.role;
 
-  const actionable =
-    perspective === "buyer"
-      ? deals.filter((d) => d.buyerEmail === email)
-      : deals.filter((d) => isDealForSupplier(d, email, inventory));
+  const canFetchMine =
+    perspective === "buyer" &&
+    Boolean(session) &&
+    (role === "buyer" || role === "aggregator" || role === "admin");
+  const canFetchIncoming =
+    perspective === "supplier" &&
+    Boolean(session) &&
+    (role === "supplier" || role === "aggregator" || role === "admin");
+
+  const {
+    data: myApiDeals = [],
+    isLoading: mineLoading,
+    isError: mineError,
+  } = useListMyDealsQuery(undefined, {
+    ...liveDealListOptions,
+    skip: !canFetchMine,
+  });
+  const {
+    data: incomingApiDeals = [],
+    isLoading: incomingLoading,
+    isError: incomingError,
+  } = useListIncomingDealsQuery(undefined, {
+    ...liveDealListOptions,
+    skip: !canFetchIncoming,
+  });
+
+  const remoteDeals = useMemo(() => {
+    const rows =
+      perspective === "buyer"
+        ? myApiDeals.map(mapApiDealToLocal)
+        : incomingApiDeals.map(mapApiDealToLocal);
+    return rows;
+  }, [perspective, myApiDeals, incomingApiDeals]);
+
+  const actionable = useMemo(() => {
+    // Local RFQs stay on Buy Requests; product purchases come from the API.
+    const localForPanel =
+      perspective === "buyer"
+        ? deals.filter((d) => d.buyerEmail === email && !isRfqDeal(d))
+        : deals.filter(
+            (d) =>
+              !isRfqDeal(d) && isDealForSupplier(d, email, inventory, userId)
+          );
+    return mergeDeals(localForPanel, remoteDeals);
+  }, [perspective, deals, email, inventory, userId, remoteDeals]);
+
+  const loading =
+    (canFetchMine && mineLoading) || (canFetchIncoming && incomingLoading);
+  const failed =
+    (canFetchMine && mineError) || (canFetchIncoming && incomingError);
+  const [paying, setPaying] = useState<Deal | null>(null);
 
   return (
     <Panel
-      title={perspective === "buyer" ? "Deals & payments" : "Deal confirmations"}
+      title={
+        perspective === "buyer" ? "Deals & payments" : "Deal confirmations"
+      }
       subtitle={
         perspective === "buyer"
-          ? "Pay once the supplier confirms quantity."
-          : "Confirm or reject requests for your products, then manage transport."
+          ? "Pay once the supplier confirms available quantity."
+          : "New buy requests appear here — confirm available quantity or reject, then manage transport."
       }
     >
-      {actionable.length === 0 ? (
+      {loading && actionable.length === 0 ? (
+        <EmptyState message="Loading deals…" />
+      ) : failed && actionable.length === 0 ? (
+        <EmptyState message="Deals could not be loaded. Refresh the page to try again." />
+      ) : actionable.length === 0 ? (
         <EmptyState message="No deals in this workspace yet." />
       ) : (
         <div className="flex flex-col gap-3">
           {actionable.map((deal) => {
-            const isMineAsSupplier = deal.supplierEmail === email;
+            const isMineAsSupplier =
+              deal.supplierEmail === email ||
+              Boolean(userId && deal.supplierUserId === userId);
             const canConfirm =
               perspective === "supplier" && deal.status === "requested";
             const canPay =
               perspective === "buyer" &&
               deal.status === "confirmed" &&
               deal.buyerEmail === email;
+            const paid = [
+              "paid",
+              "transport_open",
+              "transport_quoted",
+              "transport_accepted",
+              "packaging_requested",
+              "in_transit",
+              "delivery_pending",
+              "delivered",
+            ].includes(deal.status);
             const showPaymentNotice =
-              perspective === "supplier" &&
-              isMineAsSupplier &&
-              (deal.status === "paid" ||
-                deal.status === "transport_open" ||
-                deal.status === "transport_quoted" ||
-                deal.status === "transport_accepted");
+              paid &&
+              (perspective === "buyer"
+                ? deal.buyerEmail === email
+                : isMineAsSupplier);
+            const instrument =
+              deal.paymentMethod === "CARD"
+                ? `card ${deal.paymentAccount ?? ""}`
+                : deal.paymentMethod === "MOBILE_MONEY"
+                  ? `mobile money ${deal.paymentAccount ?? ""}`
+                  : deal.paymentAccount;
             const canRequestTransport =
               perspective === "supplier" &&
               isMineAsSupplier &&
               deal.status === "paid";
-            const canAcceptQuote =
+            const canConfirmTransport =
               perspective === "supplier" &&
               isMineAsSupplier &&
               deal.status === "transport_quoted";
+            const priceNote = deliveryPriceNote(deal);
 
             return (
               <article
                 key={deal.id}
-                className="rounded-1.25 border border-[#e5e4df] px-3.5 py-3.5"
+                className="rounded-1.25 border border-soko-line px-3.5 py-3.5"
               >
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
@@ -113,7 +177,7 @@ export function DealsPanel({
                     </strong>
                     <small className="text-[0.5625rem] text-soko-muted">
                       {perspective === "buyer"
-                        ? deal.supplierName ?? "Waiting for supplier"
+                        ? (deal.supplierName ?? "Waiting for supplier")
                         : deal.buyerBusiness}{" "}
                       · {deal.quantity} {deal.unit} → {deal.deliveryLocation}
                     </small>
@@ -122,17 +186,23 @@ export function DealsPanel({
                 </div>
 
                 {showPaymentNotice ? (
-                  <div className="mb-3 rounded-1.25 bg-[#e8edf3] px-3 py-2.5 text-[0.6875rem] text-[#3a5166]">
-                    <strong className="block">Payment received</strong>
+                  <div className="mb-3 rounded-1.25 bg-soko-slate px-3 py-2.5 text-[0.6875rem] text-soko-green-2">
+                    <strong className="block">
+                      {perspective === "buyer"
+                        ? "Payment succeeded"
+                        : "Payment received"}
+                    </strong>
                     {formatRwf(deal.paidAmount ?? 0)} for {deal.confirmedQty}{" "}
-                    trays
+                    {deal.unit}
+                    {instrument ? ` · ${instrument}` : ""}
+                    {deal.paymentReleaseStatus === "RELEASED"
+                      ? " · released"
+                      : " · held until delivery is complete"}
                     {deal.paidAt
                       ? ` · ${new Date(deal.paidAt).toLocaleString()}`
                       : ""}
-                    {deal.status === "transport_open" ? (
-                      <span className="mt-1 block">
-                        Transport notice sent to logistics.
-                      </span>
+                    {priceNote ? (
+                      <span className="mt-1 block">{priceNote}</span>
                     ) : null}
                   </div>
                 ) : null}
@@ -150,57 +220,28 @@ export function DealsPanel({
                       </b>{" "}
                       to {deal.supplierName}
                     </span>
-                    <BusyButton
+                    <button
+                      type="button"
                       className={btn.buyCompact}
-                      busyLabel="Paying…"
-                      label="Record payment"
-                      onClick={() => payDeal(deal.id)}
-                    />
+                      onClick={() => setPaying(deal)}
+                    >
+                      Proceed to payment
+                    </button>
                   </div>
                 ) : null}
 
                 {canRequestTransport ? (
-                  <BusyButton
-                    className={`${btn.sellCompact} mt-3`}
-                    busyLabel="Requesting…"
-                    label={
-                      <>
-                        Request transport <Icon name="truck" size={16} />
-                      </>
-                    }
-                    onClick={() => requestTransport(deal.id)}
-                  />
+                  <RequestTransportForm deal={deal} />
                 ) : null}
 
-                {canAcceptQuote && deal.transportQuotes.length > 0 ? (
-                  <div className="mt-3 space-y-2">
-                    <p className="m-0 text-[0.625rem] font-bold tracking-wide text-soko-muted uppercase">
-                      Logistics quotes
-                    </p>
-                    {deal.transportQuotes.map((q) => (
-                      <div
-                        key={q.logisticsEmail}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-1.25 bg-[#f5f5f1] px-3 py-2.5"
-                      >
-                        <div className="text-[0.6875rem]">
-                          <strong>{q.logisticsName}</strong>
-                          <span className="text-soko-muted">
-                            {" "}
-                            · {formatRwf(q.fee)}
-                            {q.note ? ` · ${q.note}` : ""}
-                          </span>
-                        </div>
-                        <BusyButton
-                          className={btn.sellCompact}
-                          busyLabel="Accepting…"
-                          label="Accept quote"
-                          onClick={() =>
-                            acceptTransportQuote(deal.id, q.logisticsEmail)
-                          }
-                        />
-                      </div>
-                    ))}
-                  </div>
+                {canConfirmTransport ? (
+                  <ConfirmTransportButton deal={deal} />
+                ) : null}
+
+                {priceNote && !showPaymentNotice && !canConfirmTransport ? (
+                  <p className="mt-3 mb-0 text-[0.6875rem] text-soko-ink">
+                    {priceNote}
+                  </p>
                 ) : null}
 
                 {deal.status === "transport_accepted" && isMineAsSupplier ? (
@@ -211,11 +252,37 @@ export function DealsPanel({
                       : ""}
                   </p>
                 ) : null}
+
+                {isFulfillmentStatus(deal.status) &&
+                perspective === "supplier" &&
+                isMineAsSupplier ? (
+                  <FulfillmentSteps deal={deal} actor="supplier" />
+                ) : null}
+                {(deal.status === "delivery_pending" ||
+                  deal.status === "delivered") &&
+                perspective === "buyer" &&
+                deal.buyerEmail === email ? (
+                  <FulfillmentSteps
+                    deal={deal}
+                    actor="buyer"
+                    showTrack={false}
+                  />
+                ) : null}
               </article>
             );
           })}
         </div>
       )}
+      {paying ? (
+        <PayDealDialog
+          dealId={paying.id}
+          amount={(paying.offerPrice ?? 0) * (paying.confirmedQty ?? 0)}
+          supplierName={paying.supplierName ?? "the seller"}
+          purpose={paying.product}
+          deliveryLocation={paying.deliveryLocation}
+          onClose={() => setPaying(null)}
+        />
+      ) : null}
     </Panel>
   );
 }

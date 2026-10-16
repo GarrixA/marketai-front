@@ -117,12 +117,12 @@ export function RecordStockModal({
   };
 
   return (
-    <div className="fixed inset-0 z-100 grid place-items-center overflow-y-auto bg-[#08141cb8] p-4 backdrop-blur-sm sm:p-6">
+    <div className="fixed inset-0 z-100 grid place-items-center overflow-y-auto bg-soko-navy/72 p-4 backdrop-blur-sm sm:p-6">
       <div className="relative my-auto max-h-[min(94vh,100%)] w-full max-w-125 overflow-auto rounded-2.5 bg-white px-5 py-6 sm:px-8 sm:py-7">
         {loading ? <ActionOverlay label="Confirming sell…" /> : null}
         <button
           type="button"
-          className="absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-full border border-[#ddd] bg-white disabled:opacity-50 sm:top-4 sm:right-4"
+          className="absolute top-3 right-3 grid h-9 w-9 place-items-center rounded-full border border-soko-line bg-white disabled:opacity-50 sm:top-4 sm:right-4"
           onClick={onClose}
           disabled={loading}
           aria-label="Close record stock"

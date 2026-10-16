@@ -16,14 +16,9 @@ type SearchBarProps = {
   onSearch?: (filters: ListingSearchFilters) => void;
 };
 
-export function SearchBar({
-  value,
-  onChange,
-  onSearch,
-}: SearchBarProps = {}) {
-  const [internal, setInternal] = useState<ListingSearchFilters>(
-    EMPTY_SEARCH_FILTERS
-  );
+export function SearchBar({ value, onChange, onSearch }: SearchBarProps = {}) {
+  const [internal, setInternal] =
+    useState<ListingSearchFilters>(EMPTY_SEARCH_FILTERS);
   const filters = value ?? internal;
 
   const update = (patch: Partial<ListingSearchFilters>) => {
@@ -44,40 +39,40 @@ export function SearchBar({
   return (
     <form
       onSubmit={submit}
-      className="grid grid-cols-[1.45fr_1fr_0.85fr_0.85fr_auto] gap-0 rounded-lg border border-[#e2e2dc] bg-[#f7f7f3] p-3.5 text-soko-ink max-md:grid-cols-2 max-md:gap-3 max-sm:grid-cols-1"
+      className="grid grid-cols-[1.45fr_1fr_0.85fr_0.85fr_auto] gap-0 rounded-lg border border-soko-line bg-white p-3.5 text-soko-ink max-md:grid-cols-2 max-md:gap-3 max-sm:grid-cols-1"
     >
-      <label className="border-r border-[#e2e2dc] px-4.5 py-0.5 max-md:rounded-md max-md:border-0 max-md:bg-[#f4f4ef] max-md:p-3 max-sm:col-span-full">
-        <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-[#69766f] uppercase">
+      <label className="border-r border-soko-line px-4.5 py-0.5 max-md:rounded-md max-md:border-0 max-md:bg-soko-slate max-md:p-3 max-sm:col-span-full">
+        <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-soko-muted uppercase">
           What are you looking for?
         </span>
         <div className="flex items-center gap-2">
-          <Icon name="search" className="text-soko-green" />
+          <Icon name="search" className="text-soko-navy" />
           <input
             value={filters.query}
             onChange={(e) => update({ query: e.target.value })}
-            className="w-full border-0 bg-transparent text-[0.8125rem] text-[#303b36] outline-none"
+            className="w-full border-0 bg-transparent text-[0.8125rem] text-soko-ink outline-none"
             placeholder="Eggs, grades, suppliers…"
             aria-label="Search eggs and suppliers"
           />
         </div>
       </label>
-      <label className="border-r border-[#e2e2dc] px-4.5 py-0.5 max-md:rounded-md max-md:border-0 max-md:bg-[#f4f4ef] max-md:p-3">
-        <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-[#69766f] uppercase">
+      <label className="border-r border-soko-line px-4.5 py-0.5 max-md:rounded-md max-md:border-0 max-md:bg-soko-slate max-md:p-3">
+        <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-soko-muted uppercase">
           Delivery location
         </span>
         <div className="flex items-center gap-2">
-          <Icon name="pin" className="text-soko-green" />
+          <Icon name="pin" className="text-soko-navy" />
           <input
             value={filters.location}
             onChange={(e) => update({ location: e.target.value })}
-            className="w-full border-0 bg-transparent text-[0.8125rem] text-[#303b36] outline-none"
+            className="w-full border-0 bg-transparent text-[0.8125rem] text-soko-ink outline-none"
             placeholder="Kigali, Musanze..."
             aria-label="Delivery location"
           />
         </div>
       </label>
-      <label className="border-r border-[#e2e2dc] px-4.5 py-0.5 max-md:hidden max-md:rounded-md max-md:border-0 max-md:bg-[#f4f4ef] max-md:p-3 max-sm:hidden">
-        <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-[#69766f] uppercase">
+      <label className="border-r border-soko-line px-4.5 py-0.5 max-md:hidden max-md:rounded-md max-md:border-0 max-md:bg-soko-slate max-md:p-3 max-sm:hidden">
+        <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-soko-muted uppercase">
           Quantity
         </span>
         <select
@@ -85,7 +80,7 @@ export function SearchBar({
           onChange={(e) =>
             update({ quantity: e.target.value as QuantityFilter })
           }
-          className="w-full border-0 bg-transparent text-[0.8125rem] text-[#303b36] outline-none"
+          className="w-full border-0 bg-transparent text-[0.8125rem] text-soko-ink outline-none"
           aria-label="Order quantity"
         >
           <option value="">Any size</option>
@@ -94,14 +89,14 @@ export function SearchBar({
           <option value="200+">200+ units</option>
         </select>
       </label>
-      <label className="border-r border-[#e2e2dc] px-4.5 py-0.5 max-md:hidden max-sm:hidden">
-        <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-[#69766f] uppercase">
+      <label className="border-r border-soko-line px-4.5 py-0.5 max-md:hidden max-sm:hidden">
+        <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-soko-muted uppercase">
           Category
         </span>
         <select
           value={filters.category || "Any category"}
           onChange={(e) => update({ category: e.target.value })}
-          className="w-full border-0 bg-transparent text-[0.8125rem] text-[#303b36] outline-none"
+          className="w-full border-0 bg-transparent text-[0.8125rem] text-soko-ink outline-none"
           aria-label="Product category"
         >
           {SEARCH_CATEGORIES.map((category) => (

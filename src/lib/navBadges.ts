@@ -1,31 +1,57 @@
 import type { DashboardRole } from "@/lib/session";
 import type { Deal, InventoryItem, SellOffer } from "@/lib/marketplaceTypes";
-import { isDealForSupplier } from "@/lib/marketplaceStore";
+import { isPersistedDeal } from "@/lib/mapApiDeal";
+import { isDealForSupplier, isRfqDeal } from "@/lib/marketplaceStore";
 import type { DashboardSection } from "@/lib/dashboardNav";
 import { countNewSellOffers } from "@/lib/sellOffersSeen";
 
 export function getNavBadges({
   role,
   email,
+  userId,
   deals,
   inventory,
   sellOffers = [],
+  apiDeals = [],
 }: {
   role: DashboardRole;
   email: string;
+  userId?: string;
   deals: Deal[];
   inventory: InventoryItem[];
   sellOffers?: SellOffer[];
+  /** Persisted product-purchase deals from the API (buyer + seller views). */
+  apiDeals?: Deal[];
 }): Partial<Record<DashboardSection, number>> {
-  const myBuy = deals.filter((d) => d.buyerEmail === email);
-  const mySupply = deals.filter((d) => isDealForSupplier(d, email, inventory));
-  const openIncoming = mySupply.filter((d) => d.status === "requested").length;
-  const readyToPay = myBuy.filter((d) => d.status === "confirmed").length;
-  const supplierAction = mySupply.filter(
-    (d) => d.status === "transport_quoted"
+  const byId = new Map<string, Deal>();
+  for (const deal of deals) byId.set(deal.id, deal);
+  for (const deal of apiDeals) byId.set(deal.id, deal);
+  const allDeals = Array.from(byId.values());
+
+  const myBuy = allDeals.filter((d) => d.buyerEmail === email);
+  const myRfq = myBuy.filter(isRfqDeal);
+  const myPurchases = myBuy.filter((d) => !isRfqDeal(d));
+  const mySupply = allDeals.filter((d) =>
+    isDealForSupplier(d, email, inventory, userId)
+  );
+  const supplyPurchases = mySupply.filter((d) => !isRfqDeal(d));
+  const supplyRfqs = mySupply.filter(isRfqDeal);
+  const openPurchaseIncoming = supplyPurchases.filter(
+    (d) => d.status === "requested"
   ).length;
-  const openTransportJobs = deals.filter(
+  const openRfqIncoming = supplyRfqs.filter(
+    (d) => d.status === "requested"
+  ).length;
+  const readyToPay = myBuy.filter((d) => d.status === "confirmed").length;
+  const awaitingSeller = myPurchases.filter(
+    (d) => d.status === "requested"
+  ).length;
+  const supplierAction = supplyPurchases.filter(
+    (d) => d.status === "transport_quoted" || d.status === "packaging_requested"
+  ).length;
+  const openTransportJobs = allDeals.filter(
     (d) =>
+      isPersistedDeal(d.id) &&
       (d.status === "transport_open" || d.status === "transport_quoted") &&
       !d.transportQuotes.some((q) => q.logisticsEmail === email)
   ).length;
@@ -34,40 +60,83 @@ export function getNavBadges({
   const badges: Partial<Record<DashboardSection, number>> = {};
 
   if (role === "buyer") {
-    if (newSellOffers) badges["Sell Offers"] = newSellOffers;
-    if (myBuy.filter((d) => d.status === "requested").length) {
-      badges["Buy Requests"] = myBuy.filter(
-        (d) => d.status === "requested"
-      ).length;
-    }
-    if (readyToPay) badges.Deals = readyToPay;
+    const rfqOpen = myRfq.filter((d) => d.status === "requested").length;
+    if (rfqOpen) badges["Buy Requests"] = rfqOpen;
+    const dealsAction = awaitingSeller + readyToPay;
+    if (dealsAction) badges.Deals = dealsAction;
+    const tracking = myPurchases.filter((deal) =>
+      [
+        "paid",
+        "transport_open",
+        "transport_quoted",
+        "transport_accepted",
+        "packaging_requested",
+        "in_transit",
+        "delivery_pending",
+      ].includes(deal.status)
+    ).length;
+    if (tracking) badges.Orders = tracking;
   }
 
   if (role === "supplier") {
-    if (openIncoming) badges["Buy Requests"] = openIncoming;
-    if (supplierAction) badges.Deals = supplierAction;
+    if (openRfqIncoming) badges["Buy Requests"] = openRfqIncoming;
+    const dealsAction = openPurchaseIncoming + supplierAction;
+    if (dealsAction) badges.Deals = dealsAction;
+    const tracking = supplyPurchases.filter((deal) =>
+      [
+        "paid",
+        "transport_open",
+        "transport_quoted",
+        "transport_accepted",
+        "packaging_requested",
+        "in_transit",
+        "delivery_pending",
+      ].includes(deal.status)
+    ).length;
+    if (tracking) badges.Sales = tracking;
   }
 
   if (role === "aggregator") {
     if (newSellOffers) badges["Sell Offers"] = newSellOffers;
-    const buyOpen = myBuy.filter((d) => d.status === "requested").length;
-    const buyRequests = openIncoming + buyOpen;
-    if (buyRequests) badges["Buy Requests"] = buyRequests;
-    const dealsAction = readyToPay + supplierAction;
+    const rfqOpen =
+      myRfq.filter((d) => d.status === "requested").length + openRfqIncoming;
+    if (rfqOpen) badges["Buy Requests"] = rfqOpen;
+    const dealsAction =
+      openPurchaseIncoming + awaitingSeller + readyToPay + supplierAction;
     if (dealsAction) badges.Deals = dealsAction;
+    const active = [
+      "paid",
+      "transport_open",
+      "transport_quoted",
+      "transport_accepted",
+      "packaging_requested",
+      "in_transit",
+      "delivery_pending",
+    ];
+    const buyerTracking = myPurchases.filter((deal) =>
+      active.includes(deal.status)
+    ).length;
+    const sellerTracking = supplyPurchases.filter((deal) =>
+      active.includes(deal.status)
+    ).length;
+    if (buyerTracking) badges.Orders = buyerTracking;
+    if (sellerTracking) badges.Sales = sellerTracking;
   }
 
-  if (role === "logistics" && openTransportJobs) {
-    badges.Transport = openTransportJobs;
+  if (role === "logistics") {
+    const mine = allDeals.filter(
+      (deal) =>
+        deal.logisticsEmail === email &&
+        (deal.status === "transport_accepted" || deal.status === "in_transit")
+    ).length;
+    const attention = openTransportJobs + mine;
+    if (attention) badges.Transport = attention;
   }
 
   if (role === "admin") {
-    const allOpen = deals.filter((d) => d.status === "requested").length;
+    const allOpen = allDeals.filter((d) => d.status === "requested").length;
     if (allOpen) badges.Deals = allOpen;
   }
-
-  const total = Object.values(badges).reduce((sum, n) => sum + (n ?? 0), 0);
-  if (total > 0) badges.Overview = total;
 
   return badges;
 }

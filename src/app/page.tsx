@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import SokoApp from "@/components/SokoApp";
 
 export default function HomePage() {
-  return <SokoApp />;
+  return (
+    <Suspense fallback={null}>
+      <SokoApp />
+    </Suspense>
+  );
 }

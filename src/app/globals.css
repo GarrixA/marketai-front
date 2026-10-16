@@ -1,20 +1,43 @@
 @import "tailwindcss";
 
+/*
+  Soko brand palette
+  ─────────────────
+  Primary/Brand: Deep Navy Blue — headers, primary text, footers
+  Action/CTA:    Vibrant Amber/Orange — Add to Cart, Buy Now, flash banners only
+  Backgrounds:   Pure White (product grids) · Slate Gray (section dividers)
+*/
 @theme inline {
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
 
-  --color-soko-ink: #17191c;
-  --color-soko-green: #243447;
-  --color-soko-green-2: #3a5166;
-  --color-soko-lime: #e8dcc8;
-  --color-soko-cream: #f7f5ef;
-  --color-soko-line: #dddcd5;
+  /* Brand */
+  --color-soko-navy: #0d1b2a;
+  --color-soko-navy-2: #131921;
+  --color-soko-ink: #0d1b2a;
+
+  /* CTA — reserve for buy / flash actions */
+  --color-soko-cta: #ff9900;
+  --color-soko-cta-hover: #e67e22;
+  --color-soko-amber: #ff9900;
+
+  /* Surfaces */
+  --color-soko-white: #ffffff;
+  --color-soko-slate: #f4f6f8;
+  --color-soko-page: #f4f6f8;
+  --color-soko-cream: #f4f6f8;
+
+  /* Supporting */
   --color-soko-muted: #6b7280;
-  --color-soko-amber: #d88a32;
-  --color-soko-dark: #12161c;
-  --color-soko-page: #fbfaf7;
-  --color-soko-sidebar: #1a222c;
+  --color-soko-line: #e2e6ea;
+  --color-soko-dark: #131921;
+  --color-soko-sidebar: #0d1b2a;
+  --color-soko-on-dark: #c5d0dc;
+
+  /* Legacy aliases → brand navy (existing class names keep working) */
+  --color-soko-green: #0d1b2a;
+  --color-soko-green-2: #3a5166;
+  --color-soko-lime: #c5d0dc;
 }
 
 @layer base {
@@ -43,5 +66,28 @@
 
   a {
     @apply text-inherit no-underline;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-receipt,
+  .print-receipt * {
+    visibility: visible;
+  }
+
+  .print-receipt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    box-shadow: none;
+  }
+
+  .print-hide {
+    display: none !important;
   }
 }

@@ -14,13 +14,13 @@ export function Logo({ light = false, onHome }: LogoProps) {
     >
       <span
         className={`grid h-9.75 w-8.25 place-items-center rounded-[52%_48%_48%_52%/62%_62%_38%_38%] ${
-          light ? "bg-white" : "bg-soko-green"
+          light ? "bg-white" : "bg-soko-navy"
         }`}
         style={{ transform: "rotate(25deg)" }}
       >
         <span
           className={`block h-4.25 w-2.75 rounded-[60%_20%_60%_20%] ${
-            light ? "bg-soko-green" : "bg-soko-lime"
+            light ? "bg-soko-navy" : "bg-soko-on-dark"
           }`}
           style={{ transform: "rotate(-15deg)" }}
         />
@@ -29,7 +29,7 @@ export function Logo({ light = false, onHome }: LogoProps) {
         Soko
         <small
           className={`block font-sans text-[0.4375rem] font-bold tracking-[0.15rem] ${
-            light ? "text-[#9fb8ad]" : "text-[#789083]"
+            light ? "text-soko-on-dark" : "text-soko-muted"
           }`}
         >
           RWANDA
