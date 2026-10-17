@@ -3,6 +3,8 @@ import type {
   CreateProductRequest,
   MarketplaceProduct,
   ProductCategory,
+  RequestSellBody,
+  SellerCatalog,
   UpdateProductRequest,
 } from "@/types/product";
 
@@ -20,6 +22,16 @@ const productsApi = baseAPI.injectEndpoints({
       query: () => "/products/all",
       providesTags: [{ type: "Products", id: "ALL" }],
     }),
+    listSellRequests: builder.query<
+      MarketplaceProduct[],
+      { excludeOwn?: boolean } | void
+    >({
+      query: (params) => ({
+        url: "/products/sell-requests",
+        params: params?.excludeOwn ? { excludeOwn: "true" } : undefined,
+      }),
+      providesTags: [{ type: "Products", id: "SELL_REQUESTS" }],
+    }),
     listAvailableProducts: builder.query<
       MarketplaceProduct[],
       { excludeOwn?: boolean } | void
@@ -29,6 +41,12 @@ const productsApi = baseAPI.injectEndpoints({
         params: params?.excludeOwn ? { excludeOwn: "true" } : undefined,
       }),
       providesTags: [{ type: "Products", id: "AVAILABLE" }],
+    }),
+    getSellerBySlug: builder.query<SellerCatalog, string>({
+      query: (slug) => `/products/sellers/${encodeURIComponent(slug)}`,
+      providesTags: (_result, _error, slug) => [
+        { type: "Products", id: `SELLER-${slug}` },
+      ],
     }),
     getProduct: builder.query<MarketplaceProduct, string>({
       query: (id) => `/products/${id}`,
@@ -40,6 +58,22 @@ const productsApi = baseAPI.injectEndpoints({
         { type: "Products", id: "MINE" },
         { type: "Products", id: "AVAILABLE" },
         { type: "Products", id: "ALL" },
+      ],
+    }),
+    requestSell: builder.mutation<
+      MarketplaceProduct,
+      { id: string; body: RequestSellBody }
+    >({
+      query: ({ id, body }) => ({
+        url: `/products/${id}/sell-request`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [
+        { type: "Products", id: "MINE" },
+        { type: "Products", id: "AVAILABLE" },
+        { type: "Products", id: "ALL" },
+        { type: "Products", id: "SELL_REQUESTS" },
       ],
     }),
     updateProduct: builder.mutation<
@@ -55,6 +89,7 @@ const productsApi = baseAPI.injectEndpoints({
         { type: "Products", id: "MINE" },
         { type: "Products", id: "AVAILABLE" },
         { type: "Products", id: "ALL" },
+        { type: "Products", id: "SELL_REQUESTS" },
         { type: "Products", id },
       ],
     }),
@@ -64,6 +99,7 @@ const productsApi = baseAPI.injectEndpoints({
         { type: "Products", id: "MINE" },
         { type: "Products", id: "AVAILABLE" },
         { type: "Products", id: "ALL" },
+        { type: "Products", id: "SELL_REQUESTS" },
       ],
     }),
   }),
@@ -73,9 +109,12 @@ export const {
   useListProductCategoriesQuery,
   useListMyProductsQuery,
   useListAllProductsQuery,
+  useListSellRequestsQuery,
   useListAvailableProductsQuery,
+  useGetSellerBySlugQuery,
   useGetProductQuery,
   useCreateProductMutation,
+  useRequestSellMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
 } = productsApi;

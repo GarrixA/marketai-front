@@ -5,6 +5,7 @@ export const API_TAGS = [
   "Products",
   "Support",
   "Deals",
+  "Requests",
 ] as const;
 
 export type ApiTag = (typeof API_TAGS)[number];

@@ -2,20 +2,15 @@
 
 import { useState } from "react";
 import { Icon, btn } from "@/lib/ui";
-import {
-  createBuyRequest,
-  formatRwf,
-  isDealForSupplier,
-  isRfqDeal,
-} from "@/lib/marketplaceStore";
-import { waitForAction } from "@/lib/actionDelay";
-import { useMarketplace } from "@/components/marketplace/MarketplaceProvider";
+import { formatRwf } from "@/lib/marketplaceStore";
+import { formatApiError } from "@/lib/apiError";
+import { openRequestToDeal } from "@/lib/openBuyRequest";
+import { useAppDialog } from "@/hooks/useAppDialog";
 import { ConfirmDealForm } from "@/components/marketplace/ConfirmDealForm";
 import {
   EmptyState,
   Field,
   Panel,
-  StatusBadge,
   fieldClass,
 } from "@/components/marketplace/uiBits";
 import {
@@ -24,12 +19,26 @@ import {
 } from "@/components/marketplace/TradeResultModal";
 import { ActionOverlay, ButtonLoader } from "@/components/ActionLoader";
 import { getSession } from "@/lib/session";
+import {
+  useCreateOpenBuyRequestMutation,
+  useListMarketBuyRequestsQuery,
+  useListMyBuyRequestsQuery,
+} from "@/store/actions/requests";
+import type { OpenBuyRequest } from "@/types/request";
 
 export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
-  const { deals, inventory } = useMarketplace();
   const session = getSession();
-  const email = session?.email ?? "";
-  const userId = session?.userId;
+  const { dialog, showError } = useAppDialog();
+  const [createOpenBuyRequest] = useCreateOpenBuyRequestMutation();
+  const mineQuery = useListMyBuyRequestsQuery(undefined, {
+    skip: mode !== "mine",
+  });
+  const marketQuery = useListMarketBuyRequestsQuery(undefined, {
+    skip: mode !== "incoming",
+    pollingInterval: 8_000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
 
   const [product, setProduct] = useState("Fresh eggs · Large");
   const [quantity, setQuantity] = useState("300");
@@ -40,50 +49,52 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
   const [tradeResult, setTradeResult] = useState<TradeResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // This page only lists RFQs created here. Product/listing buys live on Deals.
-  const list =
-    mode === "mine"
-      ? deals.filter((d) => d.buyerEmail === email && isRfqDeal(d))
-      : deals.filter(
-          (d) => isRfqDeal(d) && isDealForSupplier(d, email, inventory, userId)
-        );
+  const list: OpenBuyRequest[] =
+    mode === "mine" ? (mineQuery.data ?? []) : (marketQuery.data ?? []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session || loading) return;
     setLoading(true);
-    await waitForAction();
     const qty = Number(quantity) || 0;
-    createBuyRequest({
-      buyerEmail: session.email,
-      buyerName: session.name,
-      buyerBusiness: session.businessName,
-      product,
-      quantity: qty,
-      unit: "trays",
-      deliveryLocation: location,
-      requiredDate: date,
-      targetPrice: Number(price) || 0,
-      notes,
-    });
-    setNotes("");
-    setLoading(false);
-    setTradeResult({
-      kind: "buy",
-      title: "Buy request sent",
-      message:
-        "Suppliers can review this RFQ here and confirm or reject available quantity.",
-      details: [
+    try {
+      await createOpenBuyRequest({
         product,
-        `${qty} trays · needed by ${date}`,
-        `Delivery to ${location}`,
-        `Target ${formatRwf(Number(price) || 0)}/tray`,
-      ],
-    });
+        quantity: qty,
+        unit: "trays",
+        deliveryLocation: location,
+        requiredDate: date,
+        targetPrice: Number(price) || 0,
+        notes,
+      }).unwrap();
+      setNotes("");
+      setTradeResult({
+        kind: "buy",
+        title: "Buy request sent",
+        message:
+          "Suppliers and aggregators see this on the market with a Sell button. Buyers keep buying listed products.",
+        details: [
+          product,
+          `${qty} trays · needed by ${date}`,
+          `Delivery to ${location}`,
+          `Target ${formatRwf(Number(price) || 0)}/tray`,
+        ],
+      });
+    } catch (err) {
+      await showError(formatApiError(err), {
+        title: "Could not send buy request",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const listLoading =
+    mode === "mine" ? mineQuery.isLoading : marketQuery.isLoading;
 
   return (
     <>
+      {dialog}
       <div className="grid grid-cols-[1.1fr_1fr] gap-4.25 max-lg:grid-cols-1">
         {mode === "mine" ? (
           <Panel
@@ -207,59 +218,64 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
               : "Open RFQs from buyers — confirm or reject available quantity."
           }
         >
-          {list.length === 0 ? (
+          {listLoading ? (
+            <EmptyState message="Loading buy requests…" />
+          ) : list.length === 0 ? (
             <EmptyState
               message={
                 mode === "mine"
-                  ? "No RFQs yet. Use the form to publish one, or buy a product from Products (that goes to Deals)."
-                  : "No open RFQs yet."
+                  ? "No buy requests yet. Use the form to publish one."
+                  : "No open buy requests yet."
               }
             />
           ) : (
             <div className="flex flex-col gap-3">
-              {list.map((deal) => (
+              {list.map((request) => (
                 <article
-                  key={deal.id}
+                  key={request.id}
                   className="rounded-1.25 border border-soko-line px-3.5 py-3.5"
                 >
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div>
                       <strong className="block text-[0.8125rem]">
-                        {deal.product}
+                        {request.product}
                       </strong>
                       <small className="text-[0.5625rem] text-soko-muted">
                         {mode === "mine"
-                          ? `${deal.supplierName ?? "To suppliers"} · ${deal.deliveryLocation}`
-                          : `${deal.buyerBusiness} · ${deal.deliveryLocation}`}
+                          ? `To suppliers and aggregators · ${request.deliveryLocation}`
+                          : `${request.buyerBusiness || request.buyerName} · ${request.deliveryLocation}`}
                       </small>
                     </div>
-                    <StatusBadge status={deal.status} />
+                    <span className="inline-flex rounded-xl bg-[#fff1e6] px-2 py-1 text-[0.5625rem] font-bold text-[#c2410c]">
+                      {request.status === "OPEN" ? "Open" : request.status}
+                    </span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-[0.625rem] max-sm:grid-cols-2">
                     <div>
                       <span className="block text-soko-muted">Requested</span>
                       <b>
-                        {deal.quantity} {deal.unit}
+                        {request.quantity} {request.unit}
                       </b>
                     </div>
                     <div>
                       <span className="block text-soko-muted">Target</span>
-                      <b>{formatRwf(deal.targetPrice)}/tray</b>
+                      <b>{formatRwf(request.targetPrice)}/tray</b>
                     </div>
                     <div>
                       <span className="block text-soko-muted">Needed by</span>
-                      <b>{deal.requiredDate}</b>
+                      <b>{request.requiredDate}</b>
                     </div>
                   </div>
-                  {deal.confirmedQty ? (
+                  {mode === "incoming" && request.hasMyOffer ? (
                     <p className="mt-2 mb-0 text-[0.625rem] text-soko-green-2">
-                      Confirmed {deal.confirmedQty} trays @{" "}
-                      {formatRwf(deal.offerPrice ?? 0)}
-                      {deal.supplierName ? ` · ${deal.supplierName}` : ""}
+                      Offer sent
                     </p>
                   ) : null}
-                  {mode === "incoming" && deal.status === "requested" ? (
-                    <ConfirmDealForm deal={deal} />
+                  {mode === "incoming" && !request.hasMyOffer ? (
+                    <ConfirmDealForm
+                      deal={openRequestToDeal(request)}
+                      allowReject={false}
+                    />
                   ) : null}
                 </article>
               ))}

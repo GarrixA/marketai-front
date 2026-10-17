@@ -10,6 +10,13 @@ import type {
   RequestTransportRequest,
 } from "@/types/deal";
 
+const productLists = [
+  { type: "Products" as const, id: "MINE" },
+  { type: "Products" as const, id: "AVAILABLE" },
+  { type: "Products" as const, id: "ALL" },
+  { type: "Products" as const, id: "SELL_REQUESTS" },
+];
+
 const dealLists = [
   { type: "Deals" as const, id: "MINE" },
   { type: "Deals" as const, id: "INCOMING" },
@@ -36,7 +43,7 @@ const dealsApi = baseAPI.injectEndpoints({
   endpoints: (builder) => ({
     createDeal: builder.mutation<ApiDeal, CreateDealRequest>({
       query: (body) => ({ url: "/deals", method: "POST", body }),
-      invalidatesTags: dealLists,
+      invalidatesTags: [...dealLists, ...productLists],
     }),
     listMyDeals: builder.query<ApiDeal[], void>({
       query: () => "/deals/mine",
@@ -67,7 +74,7 @@ const dealsApi = baseAPI.injectEndpoints({
         method: "PATCH",
         body,
       }),
-      invalidatesTags: dealLists,
+      invalidatesTags: [...dealLists, ...productLists],
     }),
     payDeal: builder.mutation<ApiDeal, { id: string; body: PayDealRequest }>({
       query: ({ id, body }) => ({
@@ -114,6 +121,7 @@ const dealsApi = baseAPI.injectEndpoints({
         { type: "Products", id: "MINE" },
         { type: "Products", id: "AVAILABLE" },
         { type: "Products", id: "ALL" },
+        { type: "Products", id: "SELL_REQUESTS" },
       ],
     }),
     requestTransport: builder.mutation<
@@ -185,7 +193,7 @@ const dealsApi = baseAPI.injectEndpoints({
         url: `/deals/${id}/reject`,
         method: "PATCH",
       }),
-      invalidatesTags: dealLists,
+      invalidatesTags: [...dealLists, ...productLists],
     }),
   }),
 });

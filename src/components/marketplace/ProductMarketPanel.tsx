@@ -25,7 +25,13 @@ import {
   profileHasDeliveryAddress,
 } from "@/lib/deliveryAddress";
 import { formatRwf } from "@/lib/marketplaceStore";
+import { groupByEggType } from "@/lib/eggType";
 import { productImageSrc } from "@/lib/productImage";
+import {
+  groupProductsBySeller,
+  sellersMatchingProducts,
+} from "@/lib/sellerOffers";
+import { SellerOfferCard } from "@/components/marketplace/SellerOfferCard";
 import { validateCoordinatesAgainstAddress } from "@/lib/validateRwandaCoordinates";
 import { useCreateDealMutation } from "@/store/actions/deals";
 import { CoordinateMismatchDialog } from "@/components/support/CoordinateMismatchDialog";
@@ -46,102 +52,15 @@ import {
 
 type MarketMode = "buy" | "sell";
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-function BuyProductCard({
-  product,
-  onBuy,
-}: {
-  product: MarketplaceProduct;
-  onBuy: () => void;
-}) {
-  const ownerName = product.owner?.name ?? "Seller";
-  const ownerRole = product.owner?.role ?? "seller";
-  const locationLabel = formatRwandaLocation(product.location);
-
-  return (
-    <article className="flex h-full flex-col overflow-hidden rounded-1.75 border border-soko-line bg-white">
-      <img
-        src={productImageSrc(product.imageUrl)}
-        alt={product.name}
-        className="h-36 w-full object-cover object-[center_46%]"
-      />
-      <div className="flex flex-1 flex-col px-3 py-3.5 sm:px-4.5 sm:py-4">
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full bg-soko-slate text-[0.6875rem] font-extrabold text-soko-navy">
-              {initials(ownerName)}
-              <i className="absolute right-0 bottom-0 h-2.25 w-2.25 rounded-full border-2 border-white bg-soko-amber" />
-            </span>
-            <div className="min-w-0">
-              <strong className="block truncate text-[0.8125rem]">
-                {ownerName}
-              </strong>
-              <small className="text-[0.5625rem] text-soko-muted capitalize">
-                {ownerRole}
-              </small>
-            </div>
-          </div>
-          <span className="shrink-0 rounded-full bg-[#dcfce7] px-2 py-0.75 text-[0.5rem] font-bold tracking-wide text-[#16a34a] uppercase">
-            Available
-          </span>
-        </div>
-
-        <p className="m-0 font-display text-[1.0625rem] font-bold sm:text-[1.125rem]">
-          {Number(product.price || 0).toLocaleString("en-RW")}{" "}
-          <span className="text-[0.75rem] font-semibold text-soko-muted">
-            RWF / {product.unit.toLowerCase()}
-          </span>
-        </p>
-        <p className="m-0 mt-1 text-[0.6875rem] text-soko-ink">
-          {product.description?.trim() ||
-            `${product.availableQuantity} ${product.unit.toLowerCase()}`}
-          {product.grade ? ` · ${product.grade}` : ""}
-        </p>
-        <p className="m-0 mt-2 text-[0.625rem] text-soko-muted sm:text-[0.6875rem]">
-          Available{" "}
-          <b className="text-soko-ink">
-            {product.availableQuantity} {product.unit}
-          </b>
-          {(product.minQuantity ?? 1) > 1 ? (
-            <>
-              {" "}
-              · Min{" "}
-              <b className="text-soko-ink">
-                {product.minQuantity} {product.unit}
-              </b>
-            </>
-          ) : null}
-        </p>
-        <p className="m-0 mt-1 mb-3 line-clamp-2 flex items-start gap-1 text-[0.5625rem] text-soko-muted sm:text-[0.625rem]">
-          <Icon name="pin" size={13} className="mt-0.5 shrink-0" />
-          <span>{locationLabel}</span>
-        </p>
-
-        <div className="mt-auto flex justify-end">
-          <ActionButton variant="buy" size="sm" onClick={onBuy}>
-            Buy
-          </ActionButton>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 function SellProductCard({
   product,
   onEdit,
+  onSell,
   onDelete,
 }: {
   product: MarketplaceProduct;
   onEdit: () => void;
+  onSell: () => void;
   onDelete: () => void;
 }) {
   const locationLabel = formatRwandaLocation(product.location);
@@ -204,12 +123,44 @@ function SellProductCard({
             Edit
           </ActionButton>
           {product.isAvailable ? (
-            <ActionButton variant="sell" size="sm" onClick={onEdit}>
+            <ActionButton variant="sell" size="sm" onClick={onSell}>
               Sell
             </ActionButton>
           ) : null}
         </div>
       </div>
+    </article>
+  );
+}
+
+function EggTypeStockCard({
+  label,
+  quantity,
+  unit,
+  listings,
+}: {
+  label: string;
+  quantity: number;
+  unit: string;
+  listings: number;
+}) {
+  const unitLabel = unit.toLowerCase().replace(/s$/, "");
+  return (
+    <article className="relative rounded-1.75 border border-soko-line bg-white p-4.5">
+      <span className="absolute top-4 right-4 rounded-1.25 bg-soko-slate p-1.75 text-soko-navy">
+        <Icon name="box" />
+      </span>
+      <small className="block pr-10 text-[0.625rem] text-soko-muted">
+        {label}
+      </small>
+      <strong className="my-2 block font-display text-[1.4375rem] font-bold">
+        {quantity.toLocaleString("en-RW")}
+      </strong>
+      <p className="m-0 text-[0.5625rem] text-soko-green-2">
+        {listings === 1
+          ? `1 listing · ${unitLabel}`
+          : `${listings} listings · ${unitLabel}`}
+      </p>
     </article>
   );
 }
@@ -239,7 +190,7 @@ function toLocationPayload(address: DeliveryAddressValue) {
   };
 }
 
-function BuyQtyModal({
+export function BuyQtyModal({
   product,
   onClose,
   onConfirm,
@@ -257,7 +208,10 @@ function BuyQtyModal({
   showSuccess: ReturnType<typeof useAppDialog>["showSuccess"];
 }) {
   const router = useRouter();
-  const minQty = Math.max(1, product.minQuantity ?? 1);
+  const sellsAsLot = product.sellMode === "LOT";
+  const minQty = sellsAsLot
+    ? Math.max(1, product.availableQuantity)
+    : Math.max(1, product.minQuantity ?? 1);
   const [qty, setQty] = useState(String(minQty));
   const [loading, setLoading] = useState(false);
   const [meLoading, setMeLoading] = useState(true);
@@ -432,11 +386,20 @@ function BuyQtyModal({
               return;
             }
 
-            const qtyValue = Number(qty) || minQty;
-            if (qtyValue < minQty) {
+            const qtyValue = sellsAsLot
+              ? product.availableQuantity
+              : Number(qty) || minQty;
+            if (!sellsAsLot && qtyValue < minQty) {
               await showError(`Minimum order is ${minQty} ${product.unit}.`, {
                 title: "Quantity too low",
               });
+              return;
+            }
+            if (!sellsAsLot && qtyValue > product.availableQuantity) {
+              await showError(
+                `Only ${product.availableQuantity} ${product.unit.toLowerCase()} are listed.`,
+                { title: "Quantity too high" }
+              );
               return;
             }
 
@@ -466,18 +429,28 @@ function BuyQtyModal({
             }
           }}
         >
-          <Field label={`Quantity (${product.unit.toLowerCase()})`}>
-            <input
-              className={fieldClass}
-              type="number"
-              min={minQty}
-              max={product.availableQuantity}
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </Field>
+          {sellsAsLot ? (
+            <p className="m-0 text-[0.75rem] text-soko-ink">
+              Sold as one lot of{" "}
+              <b>
+                {product.availableQuantity} {product.unit.toLowerCase()}
+              </b>
+              .
+            </p>
+          ) : (
+            <Field label={`Quantity (${product.unit.toLowerCase()})`}>
+              <input
+                className={fieldClass}
+                type="number"
+                min={minQty}
+                max={product.availableQuantity}
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </Field>
+          )}
 
           {hasSaved ? (
             <div className="grid gap-2">
@@ -618,6 +591,7 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
   const [gradeFilter, setGradeFilter] = useState("All");
   const [query, setQuery] = useState("");
   const [formOpen, setFormOpen] = useState(false);
+  const [formIntent, setFormIntent] = useState<"edit" | "sell">("edit");
   const [editingProduct, setEditingProduct] =
     useState<MarketplaceProduct | null>(null);
   const [buying, setBuying] = useState<MarketplaceProduct | null>(null);
@@ -653,6 +627,20 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
     return rows;
   }, [availableProducts, gradeFilter, query]);
 
+  const sellerOffers = useMemo(
+    () =>
+      groupProductsBySeller(
+        availableProducts.filter(
+          (product) => product.isAvailable && product.availableQuantity > 0
+        )
+      ),
+    [availableProducts]
+  );
+  const visibleSellers = useMemo(
+    () => sellersMatchingProducts(sellerOffers, buyList),
+    [sellerOffers, buyList]
+  );
+
   const sellList = useMemo(() => {
     let rows = [...myProducts];
     if (gradeFilter !== "All") {
@@ -679,9 +667,22 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
     return ["All", ...Array.from(set)];
   }, [activeMode, myProducts, availableProducts]);
 
-  const listCount = activeMode === "sell" ? sellList.length : buyList.length;
+  const eggTypes = useMemo(() => groupByEggType(myProducts), [myProducts]);
+  const listCount =
+    activeMode === "sell" ? sellList.length : visibleSellers.length;
+  const listNoun =
+    activeMode === "sell"
+      ? `product${listCount === 1 ? "" : "s"}`
+      : `seller${listCount === 1 ? "" : "s"}`;
 
   const openEdit = (product: MarketplaceProduct) => {
+    setFormIntent("edit");
+    setEditingProduct(product);
+    setFormOpen(true);
+  };
+
+  const openSell = (product: MarketplaceProduct) => {
+    setFormIntent("sell");
     setEditingProduct(product);
     setFormOpen(true);
   };
@@ -704,6 +705,19 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
   return (
     <div className="space-y-4">
       {dialog}
+      {canManage && eggTypes.length > 0 ? (
+        <div className="grid grid-cols-4 gap-3.25 max-lg:grid-cols-2 max-sm:grid-cols-1">
+          {eggTypes.map((group) => (
+            <EggTypeStockCard
+              key={`${group.label}-${group.unit}`}
+              label={group.label}
+              quantity={group.quantity}
+              unit={group.unit}
+              listings={group.products.length}
+            />
+          ))}
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         {showToggle ? (
           <ActionToggle
@@ -765,7 +779,7 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
           ))}
         </select>
         <span className="self-center text-[0.625rem] text-soko-muted">
-          {listCount} product{listCount === 1 ? "" : "s"}
+          {listCount} {listNoun}
         </span>
       </div>
 
@@ -781,6 +795,7 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
                 key={product.id}
                 product={product}
                 onEdit={() => openEdit(product)}
+                onSell={() => openSell(product)}
                 onDelete={() => {
                   void handleDelete(product);
                 }}
@@ -790,36 +805,43 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
         )
       ) : availableLoading ? (
         <EmptyState message="Loading products to buy…" />
-      ) : buyList.length === 0 ? (
-        <EmptyState message="No products available to buy right now." />
+      ) : visibleSellers.length === 0 ? (
+        <EmptyState message="No sellers with stock to buy right now." />
       ) : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-          {buyList.map((product) => (
-            <BuyProductCard
-              key={product.id}
-              product={product}
-              onBuy={() => setBuying(product)}
-            />
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {visibleSellers.map((seller) => (
+            <SellerOfferCard key={seller.id} seller={seller} />
           ))}
         </div>
       )}
 
       {canManage ? (
         <ProductFormModal
-          key={editingProduct?.id ?? "new"}
+          key={`${editingProduct?.id ?? "new"}-${formIntent}`}
           open={formOpen}
           product={editingProduct}
+          intent={formIntent}
           onClose={() => {
             setFormOpen(false);
             setEditingProduct(null);
+            setFormIntent("edit");
           }}
           onSuccess={(saved, isUpdate) => {
+            const confirmedSell = formIntent === "sell";
             setTradeResult({
               kind: "sell",
-              title: isUpdate ? "Product updated" : "Listed for sale",
-              message: isUpdate
-                ? "Your product changes are live on the sell tab."
-                : "Your product is now visible on your sell tab.",
+              title: confirmedSell
+                ? "Sell confirmed"
+                : isUpdate
+                  ? "Product updated"
+                  : "Listed for sale",
+              message: confirmedSell
+                ? saved.sellMode === "LOT"
+                  ? "One buyer can purchase the full quantity at this price."
+                  : "Buyers can take part of this quantity. Unsold stock stays listed."
+                : isUpdate
+                  ? "Your product changes are live on the sell tab."
+                  : "Your product is now visible on your sell tab.",
               details: [
                 `${saved.name}${saved.grade ? ` · ${saved.grade}` : ""}`,
                 `${Number(saved.price || 0).toLocaleString("en-RW")} RWF / ${saved.unit.toLowerCase()}`,

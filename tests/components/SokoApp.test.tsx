@@ -10,12 +10,14 @@ import type { UserSession } from "@/lib/session";
 
 const loginMock = vi.fn();
 const logoutMock = vi.fn();
+const getMeMock = vi.fn();
 
 vi.mock("@/services/auth.service", () => ({
   authService: {
     login: (...args: unknown[]) => loginMock(...args),
     register: vi.fn(),
     logout: () => logoutMock(),
+    getMe: () => getMeMock(),
     formatError: (error: unknown) =>
       error instanceof Error ? error.message : "Login failed",
   },
@@ -72,6 +74,8 @@ describe("SokoApp", () => {
     localStorage.clear();
     loginMock.mockReset();
     logoutMock.mockReset();
+    getMeMock.mockReset();
+    getMeMock.mockRejectedValue(new Error("offline"));
     vi.mocked(usePathname).mockReturnValue("/dashboard");
   });
 
@@ -84,6 +88,85 @@ describe("SokoApp", () => {
     expect(
       screen.getAllByRole("button", { name: "Soko home" }).length
     ).toBeGreaterThan(0);
+  });
+
+  it("replaces login with the account menu when a session exists", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(
+      "soko_user_session",
+      JSON.stringify({
+        ...buyerSession,
+        name: "Productive Quality",
+        businessName: "Productive Quality",
+        avatarUrl: "https://cdn.example/avatar.png",
+      })
+    );
+    getMeMock.mockResolvedValue({
+      firstName: "Productive",
+      lastName: "Quality",
+      email: buyerSession.email,
+      phone: "+250788000000",
+      profile: {
+        businessName: "Productive Quality",
+        displayName: "Productive Quality",
+        avatarUrl: "https://cdn.example/avatar.png",
+      },
+    });
+    const push = vi.fn();
+    vi.mocked(useRouter).mockReturnValue({
+      push,
+      replace: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+      refresh: vi.fn(),
+      prefetch: vi.fn(),
+    });
+
+    renderWithStore(<SokoApp />);
+
+    const menuButton = await screen.findByRole("button", {
+      name: "Open profile menu",
+    });
+    expect(
+      screen.queryByRole("button", { name: /^Log in/i })
+    ).not.toBeInTheDocument();
+    expect(menuButton.querySelector("img")).toHaveAttribute(
+      "src",
+      "https://cdn.example/avatar.png"
+    );
+
+    await user.click(menuButton);
+    expect(screen.getByText("Productive Quality")).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /My account/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /Settings/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("menuitem", { name: /Logout/i })
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: /Dashboard/i }));
+    expect(push).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("shows initials in the account menu when there is no profile picture", async () => {
+    localStorage.setItem(
+      "soko_user_session",
+      JSON.stringify({
+        ...buyerSession,
+        businessName: "Northern Egg Hub",
+        avatarUrl: null,
+      })
+    );
+
+    renderWithStore(<SokoApp />);
+
+    const menuButton = await screen.findByRole("button", {
+      name: "Open profile menu",
+    });
+    expect(menuButton.querySelector("img")).toBeNull();
+    expect(menuButton).toHaveTextContent("AK");
   });
 
   it("opens login modal and redirects buyer to /dashboard", async () => {

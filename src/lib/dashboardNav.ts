@@ -2,6 +2,7 @@ import type { DashboardRole } from "@/lib/session";
 
 export type DashboardSection =
   | "Overview"
+  | "Market"
   | "Products"
   | "Sell Offers"
   | "Buy Requests"
@@ -15,6 +16,7 @@ export type DashboardSection =
 
 export const SECTION_PATH: Record<DashboardSection, string> = {
   Overview: "/dashboard",
+  Market: "/dashboard/market",
   Products: "/dashboard/products",
   "Sell Offers": "/dashboard/sell-offers",
   "Buy Requests": "/dashboard/buy-requests",
@@ -29,6 +31,7 @@ export const SECTION_PATH: Record<DashboardSection, string> = {
 
 export const SECTION_ICON: Record<DashboardSection, string> = {
   Overview: "grid",
+  Market: "cart",
   Products: "box",
   "Sell Offers": "star",
   "Buy Requests": "search",
@@ -42,10 +45,18 @@ export const SECTION_ICON: Record<DashboardSection, string> = {
 };
 
 export const navByRole: Record<DashboardRole, DashboardSection[]> = {
-  buyer: ["Overview", "Products", "Buy Requests", "Deals", "Orders"],
-  supplier: ["Overview", "Products", "Buy Requests", "Deals", "Sales"],
+  buyer: ["Overview", "Market", "Products", "Buy Requests", "Deals", "Orders"],
+  supplier: [
+    "Overview",
+    "Market",
+    "Products",
+    "Buy Requests",
+    "Deals",
+    "Sales",
+  ],
   aggregator: [
     "Overview",
+    "Market",
     "Products",
     "Sell Offers",
     "Buy Requests",
@@ -67,6 +78,7 @@ export function utilityPageFromPath(pathname: string): UtilityPage | null {
 
 export function sectionFromPath(pathname: string): DashboardSection {
   if (utilityPageFromPath(pathname)) return "Overview";
+  if (pathname.startsWith("/dashboard/market")) return "Market";
   if (pathname.startsWith("/dashboard/products")) return "Products";
   if (pathname.startsWith("/dashboard/sell-offers")) return "Sell Offers";
   if (pathname.startsWith("/dashboard/buy-requests")) return "Buy Requests";

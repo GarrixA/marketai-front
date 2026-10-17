@@ -23,10 +23,23 @@ export type ProductCategory = {
   isActive?: boolean;
 };
 
+export type SellerCatalog = {
+  owner: ProductOwner;
+  products: MarketplaceProduct[];
+};
+
 export type ProductOwner = {
   id: string;
+  slug?: string | null;
   name: string;
   role: "supplier" | "aggregator" | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  ratingAverage?: number;
+  ratingCount?: number;
+  verificationStatus?: string | null;
+  deliveryCapability?: boolean;
+  location?: ProductLocation | null;
 };
 
 export type MarketplaceProduct = {
@@ -46,6 +59,9 @@ export type MarketplaceProduct = {
   isAvailable: boolean;
   availableQuantity: number;
   minQuantity: number;
+  sellRequestedAt?: string | null;
+  /** LOT is one purchase of the full quantity. UNIT lets the buyer choose a quantity. */
+  sellMode?: "LOT" | "UNIT" | null;
   useMarketplaceLocation: boolean;
   locationId: string | null;
   location: ProductLocation | null;
@@ -82,3 +98,11 @@ export type CreateProductRequest = {
 };
 
 export type UpdateProductRequest = Partial<CreateProductRequest>;
+
+export type RequestSellBody = {
+  unit: ProductPriceUnit;
+  price: number;
+  availableQuantity: number;
+  minQuantity: number;
+  sellMode: "LOT" | "UNIT";
+};

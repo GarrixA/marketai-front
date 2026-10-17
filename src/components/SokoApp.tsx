@@ -6,12 +6,16 @@ import { Icon, PublicNav, SearchBar, SiteFooter, btn } from "@/lib/ui";
 import { ClaimRoleModal } from "@/components/ClaimRoleModal";
 import { LoginModal } from "@/components/LoginModal";
 import { RegisterModal } from "@/components/RegisterModal";
-import { ProductCard } from "@/components/ProductCard";
 import { MarketplaceProvider } from "@/components/marketplace/MarketplaceProvider";
+import { SellerOfferCard } from "@/components/marketplace/SellerOfferCard";
 import {
   marketplaceProductsToListings,
   type ProductListing,
 } from "@/lib/listings";
+import {
+  groupProductsBySeller,
+  sellersMatchingProducts,
+} from "@/lib/sellerOffers";
 import {
   EMPTY_SEARCH_FILTERS,
   hasActiveSearchFilters,
@@ -44,7 +48,7 @@ function Marketplace({
     () => marketplaceProductsToListings(products),
     [products]
   );
-  const [detailItem, setDetailItem] = useState<ProductListing | null>(null);
+  const sellers = useMemo(() => groupProductsBySeller(products), [products]);
   const [filters, setFilters] =
     useState<ListingSearchFilters>(EMPTY_SEARCH_FILTERS);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -59,6 +63,16 @@ function Marketplace({
     () => searchListings(listings, filters),
     [listings, filters]
   );
+  const filteredSellers = useMemo(() => {
+    if (!hasActiveSearchFilters(filters)) return sellers;
+    const matchedIds = new Set(
+      filteredListings.map((item) => item.id).filter(Boolean)
+    );
+    const matchedProducts = products.filter((product) =>
+      matchedIds.has(product.id)
+    );
+    return sellersMatchingProducts(sellers, matchedProducts);
+  }, [filters, filteredListings, products, sellers]);
 
   const totalTrays = products.reduce(
     (sum, item) => sum + (item.availableQuantity || 0),
@@ -68,8 +82,8 @@ function Marketplace({
     products.map((item) => item.ownerId).filter(Boolean)
   ).size;
 
-  const visibleListings = filteredListings.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredListings.length;
+  const visibleSellers = filteredSellers.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredSellers.length;
   const searching = hasActiveSearchFilters(filters);
 
   return (
@@ -203,13 +217,13 @@ function Marketplace({
                 <span className={sectionKicker}>AVAILABLE NOW</span>
                 <h2 className="my-2 font-display text-4xl leading-tight font-bold tracking-[-0.09375rem] text-soko-ink">
                   {searching
-                    ? "Matching listings"
+                    ? "Matching sellers"
                     : "Fresh from verified suppliers"}
                 </h2>
                 <p className="m-0 text-soko-muted">
                   {searching
-                    ? `${filteredListings.length} result${filteredListings.length === 1 ? "" : "s"} ranked by relevance.`
-                    : "Live inventory, clear pricing, and suppliers you can trust."}
+                    ? `${filteredSellers.length} seller${filteredSellers.length === 1 ? "" : "s"} with stock that matches.`
+                    : "Open a supplier or aggregator to see every listing they have."}
                 </p>
               </div>
               {searching && (
@@ -226,10 +240,10 @@ function Marketplace({
               <div className="rounded-lg border border-soko-line bg-white px-6 py-16 text-center text-sm text-soko-muted">
                 Loading available products…
               </div>
-            ) : filteredListings.length === 0 ? (
+            ) : filteredSellers.length === 0 ? (
               <div className="rounded-lg border border-soko-line bg-white px-6 py-16 text-center">
                 <h3 className="font-display text-xl font-bold">
-                  {searching ? "No listings matched" : "No products available"}
+                  {searching ? "No sellers matched" : "No products available"}
                 </h3>
                 <p className="mx-auto mt-2 max-w-105 text-sm text-soko-muted">
                   {searching
@@ -248,23 +262,16 @@ function Marketplace({
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-3 gap-5 max-md:grid-cols-1">
-                  {visibleListings.map((item) => (
-                    <ProductCard
-                      key={
-                        item.id ??
-                        `${item.supplier}-${item.name}-${item.location}`
-                      }
-                      item={item}
-                      onView={() => setDetailItem(item)}
-                    />
+                <div className="grid grid-cols-3 gap-5 max-lg:grid-cols-2 max-md:grid-cols-1">
+                  {visibleSellers.map((seller) => (
+                    <SellerOfferCard key={seller.id} seller={seller} />
                   ))}
                 </div>
                 <div className="mt-8 flex flex-col items-center gap-3 border border-soko-line bg-white px-5 py-5 text-[0.6875rem] text-soko-muted">
                   <span className="flex items-center gap-1.5">
                     <Icon name="check" />
-                    Showing {visibleListings.length} of{" "}
-                    {filteredListings.length} verified listings
+                    Showing {visibleSellers.length} of {filteredSellers.length}{" "}
+                    verified sellers
                   </span>
                   {hasMore && (
                     <button
@@ -272,7 +279,7 @@ function Marketplace({
                       className={btn.outline}
                       onClick={() =>
                         setVisibleCount((count) =>
-                          Math.min(count + PAGE_SIZE, filteredListings.length)
+                          Math.min(count + PAGE_SIZE, filteredSellers.length)
                         )
                       }
                     >
@@ -287,15 +294,6 @@ function Marketplace({
       </main>
 
       <SiteFooter onHome={onHome} />
-
-      {detailItem && (
-        <ListingDetail
-          key={detailItem.id ?? detailItem.name}
-          item={detailItem}
-          onClose={() => setDetailItem(null)}
-          onOrder={onLogin}
-        />
-      )}
     </div>
   );
 }
@@ -305,7 +303,7 @@ function pluralUnit(unit: string, count: number) {
   return unit.endsWith("s") ? unit : `${unit}s`;
 }
 
-function ListingDetail({
+export function ListingDetail({
   item,
   onClose,
   onOrder,
