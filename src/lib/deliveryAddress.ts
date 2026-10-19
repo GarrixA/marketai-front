@@ -37,9 +37,9 @@ export function formatBusinessLocation(me: MeResponse | null | undefined) {
   if (!parts.length) return "";
   const extras = [
     location.hood?.trim(),
-    location.latitude != null && location.longitude != null
-      ? `${location.latitude}, ${location.longitude}`
-      : null,
+    // location.latitude != null && location.longitude != null
+    //   ? `${location.latitude}, ${location.longitude}`
+    //   : null,
   ].filter((part): part is string => Boolean(part));
   if (!extras.length) return parts.join(", ");
   return `${parts.join(", ")} · ${extras.join(" · ")}`;

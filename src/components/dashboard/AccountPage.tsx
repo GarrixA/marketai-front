@@ -17,7 +17,7 @@ import { btn } from "@/lib/ui";
 import { formatApiError } from "@/lib/apiError";
 import { hasDeliveryAddress } from "@/lib/deliveryAddress";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
-import { validateCoordinatesAgainstAddress } from "@/lib/validateRwandaCoordinates";
+// import { validateCoordinatesAgainstAddress } from "@/lib/validateRwandaCoordinates";
 import { CoordinateMismatchDialog } from "@/components/support/CoordinateMismatchDialog";
 import {
   SupportTicketModal,
@@ -342,12 +342,12 @@ function formatEstimatedVolume(
 }
 
 function toLocationPayload(address: DeliveryAddressValue) {
-  const latitude = address.latitude?.trim()
-    ? Number(address.latitude)
-    : undefined;
-  const longitude = address.longitude?.trim()
-    ? Number(address.longitude)
-    : undefined;
+  // const latitude = address.latitude?.trim()
+  //   ? Number(address.latitude)
+  //   : undefined;
+  // const longitude = address.longitude?.trim()
+  //   ? Number(address.longitude)
+  //   : undefined;
   return {
     province: address.province,
     district: address.district,
@@ -355,14 +355,14 @@ function toLocationPayload(address: DeliveryAddressValue) {
     cell: address.cell,
     village: address.village,
     hood: address.hood?.trim() || undefined,
-    latitude:
-      latitude !== undefined && Number.isFinite(latitude)
-        ? latitude
-        : undefined,
-    longitude:
-      longitude !== undefined && Number.isFinite(longitude)
-        ? longitude
-        : undefined,
+    // latitude:
+    //   latitude !== undefined && Number.isFinite(latitude)
+    //     ? latitude
+    //     : undefined,
+    // longitude:
+    //   longitude !== undefined && Number.isFinite(longitude)
+    //     ? longitude
+    //     : undefined,
   };
 }
 
@@ -410,11 +410,9 @@ export function AccountPage() {
   const [editing, setEditing] = useState<EditSection | null>(null);
   const [savingSection, setSavingSection] = useState<SaveSection>(null);
   const [mismatchOpen, setMismatchOpen] = useState(false);
-  const [mismatchMessage, setMismatchMessage] = useState("");
+  const [mismatchMessage] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
-  const [helpPrefill, setHelpPrefill] = useState<SupportTicketPrefill | null>(
-    null
-  );
+  const [helpPrefill] = useState<SupportTicketPrefill | null>(null);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -592,69 +590,71 @@ export function AccountPage() {
   };
 
   const validateAddressCoords = async (
-    address: DeliveryAddressValue,
-    kind: "delivery" | "business"
+    _address: DeliveryAddressValue,
+    _kind: "delivery" | "business"
   ) => {
-    const lat = address.latitude?.trim() ? Number(address.latitude) : NaN;
-    const lng = address.longitude?.trim() ? Number(address.longitude) : NaN;
-    if (
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lng) ||
-      !address.village?.trim()
-    ) {
-      return true;
-    }
-
-    const label = kind === "delivery" ? "delivery" : "business";
-    try {
-      const check = await validateCoordinatesAgainstAddress({
-        latitude: lat,
-        longitude: lng,
-        province: address.province,
-        district: address.district,
-        sector: address.sector,
-        cell: address.cell,
-        village: address.village,
-      });
-      if (!check.ok) {
-        setMismatchMessage(
-          `${check.message} Fix the address, or request help from admin.`
-        );
-        setHelpPrefill({
-          category: "LOCATION_MISMATCH",
-          subject: `${kind === "delivery" ? "Delivery" : "Business"} coordinates do not match selected village`,
-          message: `My GPS coordinates do not match the village I selected. Please help me correct my ${label} address.`,
-          context: {
-            summary: check.message,
-            selectedAddress: address,
-            lookup: check.lookup,
-            mismatches: check.mismatches,
-            addressKind: kind,
-          },
-        });
-        setMismatchOpen(true);
-        return false;
-      }
-    } catch {
-      setMismatchMessage(
-        "Village boundary lookup failed. Fix the address, or request help from admin."
-      );
-      setHelpPrefill({
-        category: "LOCATION_MISMATCH",
-        subject: `Could not verify ${label} coordinates`,
-        message: `Village boundary lookup failed while saving my ${label} address. Please help me verify it.`,
-        context: {
-          summary: "Village boundary lookup failed.",
-          selectedAddress: address,
-          latitude: lat,
-          longitude: lng,
-          addressKind: kind,
-        },
-      });
-      setMismatchOpen(true);
-      return false;
-    }
+    // Coordinates ignored for now.
     return true;
+    // const lat = address.latitude?.trim() ? Number(address.latitude) : NaN;
+    // const lng = address.longitude?.trim() ? Number(address.longitude) : NaN;
+    // if (
+    //   !Number.isFinite(lat) ||
+    //   !Number.isFinite(lng) ||
+    //   !address.village?.trim()
+    // ) {
+    //   return true;
+    // }
+    //
+    // const label = kind === "delivery" ? "delivery" : "business";
+    // try {
+    //   const check = await validateCoordinatesAgainstAddress({
+    //     latitude: lat,
+    //     longitude: lng,
+    //     province: address.province,
+    //     district: address.district,
+    //     sector: address.sector,
+    //     cell: address.cell,
+    //     village: address.village,
+    //   });
+    //   if (!check.ok) {
+    //     setMismatchMessage(
+    //       `${check.message} Fix the address, or request help from admin.`
+    //     );
+    //     setHelpPrefill({
+    //       category: "LOCATION_MISMATCH",
+    //       subject: `${kind === "delivery" ? "Delivery" : "Business"} coordinates do not match selected village`,
+    //       message: `My GPS coordinates do not match the village I selected. Please help me correct my ${label} address.`,
+    //       context: {
+    //         summary: check.message,
+    //         selectedAddress: address,
+    //         lookup: check.lookup,
+    //         mismatches: check.mismatches,
+    //         addressKind: kind,
+    //       },
+    //     });
+    //     setMismatchOpen(true);
+    //     return false;
+    //   }
+    // } catch {
+    //   setMismatchMessage(
+    //     "Village boundary lookup failed. Fix the address, or request help from admin."
+    //   );
+    //   setHelpPrefill({
+    //     category: "LOCATION_MISMATCH",
+    //     subject: `Could not verify ${label} coordinates`,
+    //     message: `Village boundary lookup failed while saving my ${label} address. Please help me verify it.`,
+    //     context: {
+    //       summary: "Village boundary lookup failed.",
+    //       selectedAddress: address,
+    //       latitude: lat,
+    //       longitude: lng,
+    //       addressKind: kind,
+    //     },
+    //   });
+    //   setMismatchOpen(true);
+    //   return false;
+    // }
+    // return true;
   };
 
   const submitDelivery = async (e: React.FormEvent) => {
@@ -1223,6 +1223,7 @@ export function AccountPage() {
                             label="Hood"
                             value={me.profile.location.hood}
                           />
+                          {/* Coordinates ignored for now.
                           <DetailTile
                             icon="pin"
                             label="Coordinates"
@@ -1233,6 +1234,7 @@ export function AccountPage() {
                                 : null
                             }
                           />
+                          */}
                         </DetailGrid>
                       </div>
                     ) : (

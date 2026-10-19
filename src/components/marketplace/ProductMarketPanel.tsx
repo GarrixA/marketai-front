@@ -32,7 +32,7 @@ import {
   sellersMatchingProducts,
 } from "@/lib/sellerOffers";
 import { SellerOfferCard } from "@/components/marketplace/SellerOfferCard";
-import { validateCoordinatesAgainstAddress } from "@/lib/validateRwandaCoordinates";
+// import { validateCoordinatesAgainstAddress } from "@/lib/validateRwandaCoordinates";
 import { useCreateDealMutation } from "@/store/actions/deals";
 import { CoordinateMismatchDialog } from "@/components/support/CoordinateMismatchDialog";
 import {
@@ -166,12 +166,12 @@ function EggTypeStockCard({
 }
 
 function toLocationPayload(address: DeliveryAddressValue) {
-  const latitude = address.latitude?.trim()
-    ? Number(address.latitude)
-    : undefined;
-  const longitude = address.longitude?.trim()
-    ? Number(address.longitude)
-    : undefined;
+  // const latitude = address.latitude?.trim()
+  //   ? Number(address.latitude)
+  //   : undefined;
+  // const longitude = address.longitude?.trim()
+  //   ? Number(address.longitude)
+  //   : undefined;
   return {
     province: address.province,
     district: address.district,
@@ -179,14 +179,14 @@ function toLocationPayload(address: DeliveryAddressValue) {
     cell: address.cell,
     village: address.village,
     hood: address.hood?.trim() || undefined,
-    latitude:
-      latitude !== undefined && Number.isFinite(latitude)
-        ? latitude
-        : undefined,
-    longitude:
-      longitude !== undefined && Number.isFinite(longitude)
-        ? longitude
-        : undefined,
+    // latitude:
+    //   latitude !== undefined && Number.isFinite(latitude)
+    //     ? latitude
+    //     : undefined,
+    // longitude:
+    //   longitude !== undefined && Number.isFinite(longitude)
+    //     ? longitude
+    //     : undefined,
   };
 }
 
@@ -222,11 +222,9 @@ export function BuyQtyModal({
   );
   const [saveNewToProfile, setSaveNewToProfile] = useState(true);
   const [mismatchOpen, setMismatchOpen] = useState(false);
-  const [mismatchMessage, setMismatchMessage] = useState("");
+  const [mismatchMessage] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
-  const [helpPrefill, setHelpPrefill] = useState<SupportTicketPrefill | null>(
-    null
-  );
+  const [helpPrefill] = useState<SupportTicketPrefill | null>(null);
   const ownerName = product.owner?.name ?? "Seller";
 
   useEffect(() => {
@@ -265,66 +263,68 @@ export function BuyQtyModal({
       : newAddress;
 
   const validateActiveCoordinates = async () => {
-    const lat = activeAddress.latitude?.trim()
-      ? Number(activeAddress.latitude)
-      : NaN;
-    const lng = activeAddress.longitude?.trim()
-      ? Number(activeAddress.longitude)
-      : NaN;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      return true;
-    }
-    if (!activeAddress.village?.trim()) {
-      return true;
-    }
-
-    try {
-      const result = await validateCoordinatesAgainstAddress({
-        latitude: lat,
-        longitude: lng,
-        province: activeAddress.province,
-        district: activeAddress.district,
-        sector: activeAddress.sector,
-        cell: activeAddress.cell,
-        village: activeAddress.village,
-      });
-      if (result.ok) return true;
-      setMismatchMessage(
-        `${result.message} Fix the address, or request help from admin.`
-      );
-      setHelpPrefill({
-        category: "LOCATION_MISMATCH",
-        subject: "Delivery coordinates do not match selected village",
-        message:
-          "My GPS coordinates do not match the village I selected. Please help me correct my delivery address.",
-        context: {
-          summary: result.message,
-          selectedAddress: activeAddress,
-          lookup: result.lookup,
-          mismatches: result.mismatches,
-        },
-      });
-      setMismatchOpen(true);
-      return false;
-    } catch {
-      setMismatchMessage(
-        "Village boundary lookup failed. Fix the address, or request help from admin."
-      );
-      setHelpPrefill({
-        category: "LOCATION_MISMATCH",
-        subject: "Could not verify delivery coordinates",
-        message:
-          "Village boundary lookup failed while checking my delivery coordinates. Please help me verify my address.",
-        context: {
-          summary: "Village boundary lookup failed.",
-          selectedAddress: activeAddress,
-          latitude: lat,
-          longitude: lng,
-        },
-      });
-      setMismatchOpen(true);
-      return false;
-    }
+    // Coordinates ignored for now.
+    return true;
+    // const lat = activeAddress.latitude?.trim()
+    //   ? Number(activeAddress.latitude)
+    //   : NaN;
+    // const lng = activeAddress.longitude?.trim()
+    //   ? Number(activeAddress.longitude)
+    //   : NaN;
+    // if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    //   return true;
+    // }
+    // if (!activeAddress.village?.trim()) {
+    //   return true;
+    // }
+    //
+    // try {
+    //   const result = await validateCoordinatesAgainstAddress({
+    //     latitude: lat,
+    //     longitude: lng,
+    //     province: activeAddress.province,
+    //     district: activeAddress.district,
+    //     sector: activeAddress.sector,
+    //     cell: activeAddress.cell,
+    //     village: activeAddress.village,
+    //   });
+    //   if (result.ok) return true;
+    //   setMismatchMessage(
+    //     `${result.message} Fix the address, or request help from admin.`
+    //   );
+    //   setHelpPrefill({
+    //     category: "LOCATION_MISMATCH",
+    //     subject: "Delivery coordinates do not match selected village",
+    //     message:
+    //       "My GPS coordinates do not match the village I selected. Please help me correct my delivery address.",
+    //     context: {
+    //       summary: result.message,
+    //       selectedAddress: activeAddress,
+    //       lookup: result.lookup,
+    //       mismatches: result.mismatches,
+    //     },
+    //   });
+    //   setMismatchOpen(true);
+    //   return false;
+    // } catch {
+    //   setMismatchMessage(
+    //     "Village boundary lookup failed. Fix the address, or request help from admin."
+    //   );
+    //   setHelpPrefill({
+    //     category: "LOCATION_MISMATCH",
+    //     subject: "Could not verify delivery coordinates",
+    //     message:
+    //       "Village boundary lookup failed while checking my delivery coordinates. Please help me verify my address.",
+    //     context: {
+    //       summary: "Village boundary lookup failed.",
+    //       selectedAddress: activeAddress,
+    //       latitude: lat,
+    //       longitude: lng,
+    //     },
+    //   });
+    //   setMismatchOpen(true);
+    //   return false;
+    // }
   };
 
   return (
