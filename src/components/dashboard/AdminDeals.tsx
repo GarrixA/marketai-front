@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { formatRwf } from "@/lib/marketplaceStore";
@@ -21,25 +22,23 @@ const STATUSES: ApiDealStatus[] = [
   "REJECTED",
 ];
 
-function statusLabel(status: string) {
-  switch (status) {
-    case "TRANSPORT_REQUESTED":
-      return "Transport requested";
-    case "TRANSPORT_QUOTED":
-      return "Price proposed";
-    case "TRANSPORT_ACCEPTED":
-      return "Delivery booked";
-    case "PACKAGING_REQUESTED":
-      return "Confirm packaging";
-    case "IN_TRANSIT":
-      return "In transit";
-    case "DELIVERY_PENDING":
-      return "Confirm delivery";
-    case "DELIVERED":
-      return "Delivered";
-    default:
-      return status.replaceAll("_", " ");
-  }
+const STATUS_KEYS: Record<string, string> = {
+  REQUESTED: "REQUESTED",
+  CONFIRMED: "CONFIRMED",
+  PAID: "PAID",
+  REJECTED: "REJECTED",
+  TRANSPORT_REQUESTED: "TRANSPORT_REQUESTED",
+  TRANSPORT_QUOTED: "PRICE_PROPOSED",
+  TRANSPORT_ACCEPTED: "DELIVERY_BOOKED",
+  PACKAGING_REQUESTED: "CONFIRM_PACKAGING",
+  IN_TRANSIT: "IN_TRANSIT",
+  DELIVERY_PENDING: "CONFIRM_DELIVERY",
+  DELIVERED: "DELIVERED",
+};
+
+function statusLabel(status: string, t: (key: string) => string) {
+  const key = STATUS_KEYS[status];
+  return key ? t(`statuses.${key}`) : status.replaceAll("_", " ");
 }
 
 function dealUnits(deal: AdminDeal) {
@@ -87,11 +86,12 @@ function formatWhen(value: string) {
 }
 
 function StatusPill({ status }: { status: string }) {
+  const { t } = useTranslation("deals");
   return (
     <span
       className={`inline-flex rounded-md px-2 py-0.5 text-[0.5625rem] font-bold tracking-wide uppercase ${statusClass(status)}`}
     >
-      {statusLabel(status)}
+      {statusLabel(status, t)}
     </span>
   );
 }
@@ -200,6 +200,7 @@ function DealDetailsDialog({
   deal: AdminDeal;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("deals");
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -252,13 +253,16 @@ function DealDetailsDialog({
 
         <div className="grid grid-cols-2 border-b border-soko-line sm:grid-cols-4">
           <Metric
-            label="Quantity"
+            label={t("quantity")}
             value={`${dealUnits(deal)} ${deal.unit.toLowerCase()}`}
           />
-          <Metric label="Value" value={formatRwf(dealValue(deal))} />
-          <Metric label="Target" value={`${formatRwf(deal.targetPrice)}`} />
+          <Metric label={t("value")} value={formatRwf(dealValue(deal))} />
           <Metric
-            label="Offer"
+            label={t("target")}
+            value={`${formatRwf(deal.targetPrice)}`}
+          />
+          <Metric
+            label={t("offer")}
             value={deal.offerPrice != null ? formatRwf(deal.offerPrice) : "—"}
           />
         </div>
@@ -273,10 +277,10 @@ function DealDetailsDialog({
           deal.status === "DELIVERED" ? (
             <div className="rounded-xl border border-soko-line bg-white px-4 py-3">
               <p className="m-0 text-[0.5625rem] font-bold tracking-[0.08em] text-soko-muted uppercase">
-                Delivery
+                {t("delivery")}
               </p>
               <p className="m-0 mt-1 text-sm leading-snug text-soko-ink">
-                {statusLabel(deal.status)}
+                {statusLabel(deal.status, t)}
                 {deal.transportFee != null
                   ? ` · ${formatRwf(deal.transportFee)}`
                   : deal.transportOfferedFee != null
@@ -336,7 +340,7 @@ function DealDetailsDialog({
 
           <div className="rounded-xl border border-soko-line bg-white px-4 py-4">
             <p className="m-0 mb-3 text-[0.5625rem] font-bold tracking-[0.08em] text-soko-muted uppercase">
-              Route
+              {t("route")}
             </p>
             <div className="flex gap-3">
               <div className="flex flex-col items-center pt-1" aria-hidden>
@@ -347,7 +351,7 @@ function DealDetailsDialog({
               <div className="min-w-0 flex-1 space-y-4">
                 <div>
                   <p className="m-0 text-[0.5625rem] font-bold tracking-[0.08em] text-soko-muted uppercase">
-                    Pickup
+                    {t("pickup")}
                   </p>
                   <p className="m-0 mt-0.5 text-sm leading-snug text-soko-ink">
                     {deal.pickupLocation || "Not set"}
@@ -355,7 +359,7 @@ function DealDetailsDialog({
                 </div>
                 <div>
                   <p className="m-0 text-[0.5625rem] font-bold tracking-[0.08em] text-soko-muted uppercase">
-                    Delivery
+                    {t("delivery")}
                   </p>
                   <p className="m-0 mt-0.5 text-sm leading-snug text-soko-ink">
                     {deal.deliveryLocation || "—"}
@@ -366,8 +370,8 @@ function DealDetailsDialog({
           </div>
 
           <div className="flex flex-wrap gap-x-6 gap-y-2 px-1 text-[0.6875rem] text-soko-muted">
-            <span>Opened {formatWhen(deal.createdAt)}</span>
-            <span>Updated {formatWhen(deal.updatedAt)}</span>
+            <span>{t("openedAt", { date: formatWhen(deal.createdAt) })}</span>
+            <span>{t("updatedAt", { date: formatWhen(deal.updatedAt) })}</span>
             {deal.confirmedQty != null ? (
               <span>
                 Confirmed {deal.confirmedQty} of {deal.quantity}
@@ -392,6 +396,7 @@ function DealDetailsDialog({
 }
 
 export function AdminDeals() {
+  const { t } = useTranslation("deals");
   const {
     data: deals = [],
     isLoading,
@@ -449,12 +454,12 @@ export function AdminDeals() {
   }, [deals, query, status]);
 
   const cards = [
-    ["Total deals", String(totals.total)],
-    ["Requested", String(totals.requested)],
-    ["Confirmed", String(totals.confirmed)],
-    ["Rejected", String(totals.rejected)],
-    ["Units", totals.units.toLocaleString("en-RW")],
-    ["Open value", formatRwf(totals.value)],
+    [t("totalDeals"), String(totals.total)],
+    [t("requested"), String(totals.requested)],
+    [t("confirmed"), String(totals.confirmed)],
+    [t("rejected"), String(totals.rejected)],
+    [t("units"), totals.units.toLocaleString("en-RW")],
+    [t("openValue"), formatRwf(totals.value)],
   ];
 
   return (
@@ -478,10 +483,10 @@ export function AdminDeals() {
       <section className="rounded-1.75 border border-soko-line bg-white p-5 shadow-[0_1px_2px_rgba(13,27,42,0.04)]">
         <div className="mb-4">
           <h2 className="m-0 mb-0.5 font-display text-[1rem] font-bold tracking-tight text-soko-ink">
-            All deals
+            {t("allDeals")}
           </h2>
           <p className="m-0 text-[0.6875rem] text-soko-muted">
-            Open a deal to see parties, pricing, and route.
+            {t("allDealsDescription")}
           </p>
         </div>
 
@@ -507,10 +512,10 @@ export function AdminDeals() {
                 className="rounded-1.25 border border-soko-line bg-white px-3 py-2 text-xs outline-soko-navy sm:w-44"
                 aria-label="Filter by status"
               >
-                <option value="ALL">All statuses</option>
+                <option value="ALL">{t("allStatuses")}</option>
                 {STATUSES.map((item) => (
                   <option key={item} value={item}>
-                    {statusLabel(item)}
+                    {statusLabel(item, t)}
                   </option>
                 ))}
               </select>
@@ -529,14 +534,14 @@ export function AdminDeals() {
                 <table className="w-full min-w-[40rem] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-soko-line text-[0.5625rem] tracking-wide text-soko-muted uppercase">
-                      <th className="px-2 py-2.5 font-bold">Opened</th>
-                      <th className="px-2 py-2.5 font-bold">Product</th>
-                      <th className="px-2 py-2.5 font-bold">Status</th>
-                      <th className="px-2 py-2.5 font-bold">Buyer</th>
-                      <th className="px-2 py-2.5 font-bold">Supplier</th>
-                      <th className="px-2 py-2.5 font-bold">Value</th>
+                      <th className="px-2 py-2.5 font-bold">{t("opened")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("product")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("status")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("buyer")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("supplier")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("value")}</th>
                       <th className="px-2 py-2.5 text-right font-bold">
-                        <span className="sr-only">View</span>
+                        <span className="sr-only">{t("view")}</span>
                       </th>
                     </tr>
                   </thead>

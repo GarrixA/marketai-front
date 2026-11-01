@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { ButtonLoader } from "@/components/ActionLoader";
 import {
@@ -254,6 +255,7 @@ function ProfileHero({
 }
 
 function AddressHero({ address }: { address: string }) {
+  const { t } = useTranslation("myAccount");
   return (
     <div className="relative mb-1 overflow-hidden rounded-xl border border-soko-line bg-white px-4 py-4 sm:px-5">
       <div className="flex items-start gap-3">
@@ -262,7 +264,7 @@ function AddressHero({ address }: { address: string }) {
         </span>
         <div className="min-w-0">
           <p className="m-0 text-[0.625rem] font-bold tracking-[0.08em] text-soko-muted uppercase">
-            Address
+            {t("address")}
           </p>
           <p className="m-0 mt-1 font-display text-[0.9375rem] leading-snug font-bold text-soko-ink">
             {address}
@@ -301,9 +303,12 @@ function EditIconButton({
   );
 }
 
-function boolLabel(value: boolean | null | undefined) {
+function boolLabel(
+  value: boolean | null | undefined,
+  t: (key: string) => string
+) {
   if (value == null) return "—";
-  return value ? "Yes" : "No";
+  return value ? t("yes") : t("no");
 }
 
 function labelFromOptions<T extends string>(
@@ -402,6 +407,7 @@ function syncSessionFromMe(me: MeResponse) {
 }
 
 export function AccountPage() {
+  const { t } = useTranslation("myAccount");
   const { confirm, showError, showSuccess, dialog } = useAppDialog();
   const [tab, setTab] = useState<Tab>("profile");
   const [slide, setSlide] = useState(0);
@@ -863,8 +869,8 @@ export function AccountPage() {
   };
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "profile", label: "Profile" },
-    { id: "account", label: "Account" },
+    { id: "profile", label: t("profile") },
+    { id: "account", label: t("account") },
   ];
 
   const selectTab = (next: Tab) => {
@@ -955,8 +961,8 @@ export function AccountPage() {
             >
               <motion.div variants={panelItem}>
                 <Panel
-                  title="Personal details"
-                  subtitle="Your account identity and contact details."
+                  title={t("personalDetails")}
+                  subtitle={t("personalDetailsDescription")}
                   action={
                     editing === "personal" ? null : (
                       <EditIconButton
@@ -1025,7 +1031,7 @@ export function AccountPage() {
                           />
                         </Field>
                       </div>
-                      <Field label="Phone">
+                      <Field label={t("phone")}>
                         <input
                           className={`${fieldClass} disabled:opacity-60`}
                           value={phone}
@@ -1090,12 +1096,12 @@ export function AccountPage() {
                       <DetailGrid>
                         <DetailTile
                           icon="phone"
-                          label="Phone"
+                          label={t("phone")}
                           value={me.phone}
                         />
                         <DetailTile
                           icon="shield"
-                          label="Account status"
+                          label={t("accountStatus")}
                           value={
                             <SoftBadge tone={statusTone(me.status)}>
                               {me.status}
@@ -1104,7 +1110,7 @@ export function AccountPage() {
                         />
                         <DetailTile
                           icon="users"
-                          label="Roles"
+                          label={t("roles")}
                           value={
                             me.roles.length
                               ? me.roles.map((r) => r.name).join(", ")
@@ -1113,16 +1119,18 @@ export function AccountPage() {
                         />
                         <DetailTile
                           icon="calendar"
-                          label="Member since"
+                          label={t("memberSince")}
                           value={formatDate(me.createdAt)}
                         />
                         <DetailTile
                           icon="mail"
-                          label="Email verified"
+                          label={t("emailVerified")}
                           value={formatDate(me.emailVerifiedAt)}
                           accent={
                             me.emailVerifiedAt ? (
-                              <SoftBadge tone="active">Verified</SoftBadge>
+                              <SoftBadge tone="active">
+                                {t("verified")}
+                              </SoftBadge>
                             ) : (
                               <SoftBadge tone="pending">Pending</SoftBadge>
                             )
@@ -1130,13 +1138,17 @@ export function AccountPage() {
                         />
                         <DetailTile
                           icon="phone"
-                          label="Phone verified"
+                          label={t("phoneVerified")}
                           value={formatDate(me.phoneVerifiedAt)}
                           accent={
                             me.phoneVerifiedAt ? (
-                              <SoftBadge tone="active">Verified</SoftBadge>
+                              <SoftBadge tone="active">
+                                {t("verified")}
+                              </SoftBadge>
                             ) : (
-                              <SoftBadge tone="pending">Unverified</SoftBadge>
+                              <SoftBadge tone="pending">
+                                {t("unverified")}
+                              </SoftBadge>
                             )
                           }
                         />
@@ -1149,8 +1161,8 @@ export function AccountPage() {
               {canEditDeliveryAddress(me) ? (
                 <motion.div variants={panelItem}>
                   <Panel
-                    title="Delivery address"
-                    subtitle="Where orders should be delivered."
+                    title={t("deliveryAddress")}
+                    subtitle={t("deliveryAddressDescription")}
                     action={
                       editing === "delivery" ? null : (
                         <EditIconButton
@@ -1220,7 +1232,7 @@ export function AccountPage() {
                         <DetailGrid>
                           <DetailTile
                             icon="tag"
-                            label="Hood"
+                            label={t("hood")}
                             value={me.profile.location.hood}
                           />
                           {/* Coordinates ignored for now.
@@ -1270,17 +1282,20 @@ export function AccountPage() {
                       />
                       <DetailTile
                         icon="truck"
-                        label="Delivery capability"
-                        value={boolLabel(me.supplierProfile.deliveryCapability)}
+                        label={t("deliveryCapability")}
+                        value={boolLabel(
+                          me.supplierProfile.deliveryCapability,
+                          t
+                        )}
                       />
                       <DetailTile
                         icon="pin"
                         label="Pickup available"
-                        value={boolLabel(me.supplierProfile.pickupAvailable)}
+                        value={boolLabel(me.supplierProfile.pickupAvailable, t)}
                       />
                       <DetailTile
                         icon="shield"
-                        label="Verification"
+                        label={t("verification")}
                         value={
                           <SoftBadge
                             tone={statusTone(
@@ -1299,8 +1314,8 @@ export function AccountPage() {
               {me.aggregatorProfile ? (
                 <motion.div variants={panelItem}>
                   <Panel
-                    title="Aggregator profile"
-                    subtitle="Business details and aggregator operations."
+                    title={t("aggregatorProfile")}
+                    subtitle={t("aggregatorProfileDescription")}
                     action={
                       editing === "aggregator" ? null : (
                         <EditIconButton
@@ -1318,9 +1333,9 @@ export function AccountPage() {
                         onSubmit={(e) => void submitAggregator(e)}
                       >
                         <p className="m-0 text-[0.625rem] font-bold tracking-wide text-soko-muted uppercase">
-                          Business details
+                          {t("businessDetails")}
                         </p>
-                        <Field label="Business name">
+                        <Field label={t("businessName")}>
                           <input
                             className={`${fieldClass} disabled:opacity-60`}
                             value={companyName}
@@ -1344,7 +1359,7 @@ export function AccountPage() {
 
                         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                           <p className="m-0 text-[0.625rem] font-bold tracking-wide text-soko-muted uppercase">
-                            Business location
+                            {t("businessLocation")}
                           </p>
                           {hasDeliveryAddress(deliveryAddress) ? (
                             <button
@@ -1369,9 +1384,9 @@ export function AccountPage() {
                         </div>
 
                         <p className="m-0 mt-1 text-[0.625rem] font-bold tracking-wide text-soko-muted uppercase">
-                          Operations
+                          {t("operations")}
                         </p>
-                        <Field label="Storage capacity">
+                        <Field label={t("storageCapacity")}>
                           <input
                             type="number"
                             min={0}
@@ -1383,7 +1398,7 @@ export function AccountPage() {
                         </Field>
 
                         <div className="grid gap-3 sm:grid-cols-3">
-                          <Field label="Estimated volume">
+                          <Field label={t("estimatedVolume")}>
                             <input
                               type="number"
                               min={0}
@@ -1475,7 +1490,7 @@ export function AccountPage() {
                             </Field>
                           </div>
                         ) : null}
-                        <Field label="Supplier network">
+                        <Field label={t("supplierNetwork")}>
                           <textarea
                             className={`${fieldClass} min-h-24 resize-y disabled:opacity-60`}
                             value={supplierNetworkDescription}
@@ -1494,7 +1509,7 @@ export function AccountPage() {
                             }
                             disabled={busy}
                           />
-                          Delivery capability
+                          {t("deliveryCapability")}
                         </label>
 
                         <div className="flex flex-wrap gap-2 pt-1">
@@ -1528,7 +1543,7 @@ export function AccountPage() {
                           <div className="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                             <div className="min-w-0">
                               <p className="m-0 text-[0.625rem] font-bold tracking-[0.1em] text-soko-muted uppercase">
-                                Aggregator business
+                                {t("aggregatorBusiness")}
                               </p>
                               <p className="m-0 mt-1 font-display text-xl font-bold tracking-tight text-soko-ink">
                                 {me.aggregatorProfile.companyName ||
@@ -1549,11 +1564,11 @@ export function AccountPage() {
                           </div>
                         </div>
 
-                        <SectionBlock title="Business details">
+                        <SectionBlock title={t("businessDetails")}>
                           <DetailGrid>
                             <DetailTile
                               icon="building"
-                              label="Business name"
+                              label={t("businessName")}
                               value={
                                 me.aggregatorProfile.companyName ||
                                 me.profile?.businessName
@@ -1561,12 +1576,12 @@ export function AccountPage() {
                             />
                             <DetailTile
                               icon="hash"
-                              label="Registration number"
+                              label={t("registrationNumber")}
                               value={me.profile?.businessRegistrationNumber}
                             />
                             <DetailTile
                               icon="pin"
-                              label="Business location"
+                              label={t("businessLocation")}
                               span
                               value={
                                 aggregatorBusinessLocation(me)
@@ -1583,23 +1598,23 @@ export function AccountPage() {
                           </DetailGrid>
                         </SectionBlock>
 
-                        <SectionBlock title="Operations">
+                        <SectionBlock title={t("operations")}>
                           <DetailGrid>
                             <DetailTile
                               icon="layers"
-                              label="Storage capacity"
+                              label={t("storageCapacity")}
                               value={me.aggregatorProfile.storageCapacity}
                             />
                             <DetailTile
                               icon="chart"
-                              label="Estimated volume"
+                              label={t("estimatedVolume")}
                               value={formatEstimatedVolume(
                                 me.aggregatorProfile
                               )}
                             />
                             <DetailTile
                               icon="truck"
-                              label="Delivery capability"
+                              label={t("deliveryCapability")}
                               value={
                                 <SoftBadge
                                   tone={
@@ -1609,14 +1624,15 @@ export function AccountPage() {
                                   }
                                 >
                                   {boolLabel(
-                                    me.aggregatorProfile.deliveryCapability
+                                    me.aggregatorProfile.deliveryCapability,
+                                    t
                                   )}
                                 </SoftBadge>
                               }
                             />
                             <DetailTile
                               icon="shield"
-                              label="Verification"
+                              label={t("verification")}
                               value={
                                 <SoftBadge
                                   tone={statusTone(
@@ -1629,7 +1645,7 @@ export function AccountPage() {
                             />
                             <DetailTile
                               icon="users"
-                              label="Supplier network"
+                              label={t("supplierNetwork")}
                               span
                               value={
                                 me.aggregatorProfile.supplierNetworkDescription
@@ -1654,15 +1670,15 @@ export function AccountPage() {
               transition={{ duration: 0.28, ease: tabEase }}
             >
               <Panel
-                title="Change password"
-                subtitle="Use a strong password you have not used elsewhere."
+                title={t("changePassword")}
+                subtitle={t("changePasswordDescription")}
               >
                 <form
                   className="max-w-md"
                   onSubmit={(e) => void submitPassword(e)}
                 >
                   <div className="mb-3.5">
-                    <Field label="Current password">
+                    <Field label={t("currentPassword")}>
                       <span className="relative block">
                         <input
                           type={showPasswords ? "text" : "password"}
@@ -1692,7 +1708,7 @@ export function AccountPage() {
                     </Field>
                   </div>
                   <div className="mb-3.5">
-                    <Field label="New password">
+                    <Field label={t("newPassword")}>
                       <input
                         type={showPasswords ? "text" : "password"}
                         value={newPassword}
@@ -1707,7 +1723,7 @@ export function AccountPage() {
                     </Field>
                   </div>
                   <div className="mb-5">
-                    <Field label="Confirm new password">
+                    <Field label={t("confirmNewPassword")}>
                       <input
                         type={showPasswords ? "text" : "password"}
                         value={confirmPassword}
@@ -1731,7 +1747,7 @@ export function AccountPage() {
                       <ButtonLoader label="Updating…" />
                     ) : (
                       <>
-                        Update password <Icon name="arrow" />
+                        {t("updatePassword")} <Icon name="arrow" />
                       </>
                     )}
                   </button>

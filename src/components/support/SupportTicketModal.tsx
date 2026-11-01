@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { ActionOverlay, ButtonLoader } from "@/components/ActionLoader";
 import { Field, fieldClass } from "@/components/marketplace/uiBits";
 import { formatApiError } from "@/lib/apiError";
@@ -36,6 +37,7 @@ export function SupportTicketModal({
   onSubmitted,
   onError,
 }: Props) {
+  const { t: tDeals } = useTranslation("deals");
   const [createTicket, createState] = useCreateSupportTicketMutation();
   const draftKey = open
     ? [
@@ -203,7 +205,7 @@ export function SupportTicketModal({
               onClick={onClose}
               disabled={createState.isLoading}
             >
-              Cancel
+              {tDeals("cancel")}
             </button>
           </div>
         </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import useTranslation from "next-translate/useTranslation";
 import type { Deal } from "@/lib/marketplaceTypes";
 import { dealStatusLabel } from "@/lib/marketplaceStore";
 
@@ -18,12 +19,28 @@ const tone: Record<Deal["status"], string> = {
   delivered: "bg-soko-slate text-soko-green-2",
 };
 
+const STATUS_KEYS: Record<Deal["status"], string> = {
+  requested: "AWAITING_SUPPLIER",
+  confirmed: "CONFIRMED",
+  rejected: "REJECTED",
+  paid: "PAID",
+  transport_open: "TRANSPORT_REQUESTED",
+  transport_quoted: "PRICE_PROPOSED",
+  transport_accepted: "DELIVERY_BOOKED",
+  packaging_requested: "CONFIRM_PACKAGING",
+  in_transit: "IN_TRANSIT",
+  delivery_pending: "CONFIRM_DELIVERY",
+  delivered: "DELIVERED",
+};
+
 export function StatusBadge({ status }: { status: Deal["status"] }) {
+  const { t } = useTranslation("deals");
+  const statusKey = STATUS_KEYS[status];
   return (
     <span
       className={`inline-flex rounded-xl px-2 py-1 text-[0.5625rem] font-bold ${tone[status]}`}
     >
-      {dealStatusLabel(status)}
+      {statusKey ? t(`statuses.${statusKey}`) : dealStatusLabel(status)}
     </span>
   );
 }

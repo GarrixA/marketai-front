@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/lib/ui";
 import {
   formatRwf,
@@ -42,7 +43,12 @@ const FULFILLED: DealStatus[] = [
   "delivered",
 ];
 
-const BUYER_STEPS = ["Paid", "Packaging", "In transit", "Delivered"] as const;
+const BUYER_STEPS = [
+  { id: "paid", key: "paymentReceived" },
+  { id: "packaging", key: "steps.packaging" },
+  { id: "inTransit", key: "steps.inTransit" },
+  { id: "delivered", key: "delivered" },
+] as const;
 
 function trackIndex(status: DealStatus) {
   switch (status) {
@@ -107,24 +113,29 @@ function procedureIndex(status: DealStatus) {
 
 const SELLER_STEPS = [
   {
-    title: "Payment received",
-    body: "The buyer's payment is held until delivery is complete.",
+    id: "paymentReceived",
+    titleKey: "steps.paymentReceived",
+    bodyKey: "paymentHeldDescription",
   },
   {
-    title: "Request transport",
-    body: "Ask logistics to collect the goods and take them to the buyer.",
+    id: "requestTransport",
+    titleKey: "steps.requestTransport",
+    bodyKey: "requestTransportDescription",
   },
   {
-    title: "Accept a quote",
-    body: "Choose a transporter. Booking them starts the delivery.",
+    id: "acceptQuote",
+    titleKey: "steps.acceptQuote",
+    bodyKey: "acceptQuoteDescription",
   },
   {
-    title: "Packaging",
-    body: "When logistics asks, confirm the goods are packed.",
+    id: "packaging",
+    titleKey: "steps.packaging",
+    bodyKey: "packagingDescription",
   },
   {
-    title: "In transit",
-    body: "After you confirm packaging, the product is marked in transit.",
+    id: "inTransit",
+    titleKey: "steps.inTransit",
+    bodyKey: "inTransitDescription",
   },
 ] as const;
 
@@ -198,6 +209,7 @@ function useTrackedDeals(perspective: "buyer" | "supplier") {
 }
 
 export function BuyerOrdersPanel() {
+  const { t } = useTranslation("orders");
   const { rows, loading, failed } = useTrackedDeals("buyer");
   const waiting = rows.filter(
     (deal) => deal.status !== "in_transit" && deal.status !== "delivered"
@@ -208,23 +220,20 @@ export function BuyerOrdersPanel() {
 
   return (
     <div className="grid gap-4">
-      <Panel
-        title="My purchases"
-        subtitle="What you paid for, and where each order is on the way to you."
-      >
+      <Panel title={t("myPurchases")} subtitle={t("myPurchasesDescription")}>
         <div className="mb-4 grid grid-cols-2 gap-3">
           <Summary
-            label="Waiting to be delivered"
+            label={t("waitingForDelivery")}
             value={String(waiting.length)}
           />
-          <Summary label="In transit" value={String(moving.length)} />
+          <Summary label={t("inTransit")} value={String(moving.length)} />
         </div>
         {loading && rows.length === 0 ? (
           <EmptyState message="Loading purchases…" />
         ) : failed && rows.length === 0 ? (
           <EmptyState message="Purchases could not be loaded. Refresh the page to try again." />
         ) : rows.length === 0 ? (
-          <EmptyState message="Paid purchases will show up here, with delivery tracking." />
+          <EmptyState message={t("purchaseTrackingEmpty")} />
         ) : (
           <div className="flex flex-col gap-3">
             {rows.map((deal) => (
@@ -238,19 +247,21 @@ export function BuyerOrdersPanel() {
 }
 
 export function SupplierSalesPanel() {
+  const { t } = useTranslation("orders");
+  const { t: tSales } = useTranslation("sales");
   const { rows, loading, failed } = useTrackedDeals("supplier");
 
   return (
     <Panel
-      title="Sales & delivery"
-      subtitle="What you sold, and the steps to get it from your pickup to the buyer."
+      title={t("salesAndDelivery")}
+      subtitle={t("salesAndDeliveryDescription")}
     >
       {loading && rows.length === 0 ? (
         <EmptyState message="Loading sales…" />
       ) : failed && rows.length === 0 ? (
         <EmptyState message="Sales could not be loaded. Refresh the page to try again." />
       ) : rows.length === 0 ? (
-        <EmptyState message="Paid sales will show up here with the delivery steps." />
+        <EmptyState message={tSales("paidSalesEmpty")} />
       ) : (
         <div className="flex flex-col gap-3">
           {rows.map((deal) => (
@@ -297,6 +308,7 @@ function BuyerOrderCard({ deal }: { deal: Deal }) {
 }
 
 function SupplierSaleCard({ deal }: { deal: Deal }) {
+  const { t } = useTranslation("orders");
   const current = procedureIndex(deal.status);
   const amount =
     deal.paidAmount ??
@@ -320,7 +332,7 @@ function SupplierSaleCard({ deal }: { deal: Deal }) {
           const done = index < current;
           const active = index === current;
           return (
-            <li key={step.title} className="flex gap-3">
+            <li key={step.id} className="flex gap-3">
               <span
                 className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[0.6875rem] font-bold ${
                   done
@@ -334,10 +346,10 @@ function SupplierSaleCard({ deal }: { deal: Deal }) {
               </span>
               <div>
                 <p className="m-0 text-[0.8125rem] font-bold text-soko-ink">
-                  {step.title}
+                  {t(step.titleKey)}
                 </p>
                 <p className="m-0 mt-0.5 text-[0.6875rem] leading-snug text-soko-muted">
-                  {step.body}
+                  {t(step.bodyKey)}
                 </p>
               </div>
             </li>
@@ -345,7 +357,12 @@ function SupplierSaleCard({ deal }: { deal: Deal }) {
         })}
       </ol>
       <p className="m-0 mt-3 text-[0.6875rem] text-soko-muted">
-        {deal.pickupLocation ?? "Pickup not set"} → {deal.deliveryLocation}
+        {deal.pickupLocation
+          ? t("deliveryRoute", {
+              pickupLocation: deal.pickupLocation,
+              deliveryLocation: deal.deliveryLocation,
+            })
+          : `Pickup not set → ${deal.deliveryLocation}`}
       </p>
       {deal.status === "paid" ? <RequestTransportForm deal={deal} /> : null}
       {deal.status === "transport_quoted" ? (
@@ -364,13 +381,14 @@ function SupplierSaleCard({ deal }: { deal: Deal }) {
 }
 
 function TrackSteps({ current }: { current: number }) {
+  const { t } = useTranslation("orders");
   return (
     <ol className="m-0 flex list-none gap-2 p-0">
-      {BUYER_STEPS.map((label, index) => {
+      {BUYER_STEPS.map((step, index) => {
         const done = index < current;
         const active = index === current;
         return (
-          <li key={label} className="min-w-0 flex-1">
+          <li key={step.id} className="min-w-0 flex-1">
             <span
               className={`block h-1.5 rounded-full ${
                 done || active ? "bg-[#5b4dff]" : "bg-[#eaecf0]"
@@ -381,7 +399,7 @@ function TrackSteps({ current }: { current: number }) {
                 active ? "text-[#5b4dff]" : "text-soko-muted"
               }`}
             >
-              {label}
+              {t(step.key)}
             </span>
           </li>
         );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon, btn } from "@/lib/ui";
 import { formatRwf } from "@/lib/marketplaceStore";
 import { formatApiError } from "@/lib/apiError";
@@ -27,6 +28,7 @@ import {
 import type { OpenBuyRequest } from "@/types/request";
 
 export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
+  const { t } = useTranslation("buyRequests");
   const session = getSession();
   const { dialog, showError } = useAppDialog();
   const [createOpenBuyRequest] = useCreateOpenBuyRequestMutation();
@@ -97,17 +99,14 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
       {dialog}
       <div className="grid grid-cols-[1.1fr_1fr] gap-4.25 max-lg:grid-cols-1">
         {mode === "mine" ? (
-          <Panel
-            title="New buy request"
-            subtitle="Publish an open RFQ. Buying a listed product notifies the seller on Deals instead."
-          >
+          <Panel title={t("newRequest")} subtitle={t("newRequestDescription")}>
             <div className="relative">
               {loading ? <ActionOverlay label="Sending buy request…" /> : null}
               <form
                 className="grid grid-cols-2 gap-3 max-sm:grid-cols-1"
                 onSubmit={submit}
               >
-                <Field label="Product">
+                <Field label={t("product")}>
                   <select
                     className={fieldClass}
                     value={product}
@@ -116,20 +115,20 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                     disabled={loading}
                   >
                     {[
-                      "Fresh eggs · Large",
-                      "Fresh eggs · Medium",
-                      "Fresh eggs · Small",
-                      "Fresh eggs · Mixed",
-                      "Fresh eggs · Organic Large",
-                      "Fresh eggs · Free-range",
-                    ].map((option) => (
+                      ["Fresh eggs · Large", "freshEggsLarge"],
+                      ["Fresh eggs · Medium", "freshEggsMedium"],
+                      ["Fresh eggs · Small", "freshEggsSmall"],
+                      ["Fresh eggs · Mixed", "freshEggsMixed"],
+                      ["Fresh eggs · Organic Large", "freshEggsOrganicLarge"],
+                      ["Fresh eggs · Free-range", "freshEggsFreeRange"],
+                    ].map(([option, labelKey]) => (
                       <option key={option} value={option}>
-                        {option}
+                        {t(`productOptions.${labelKey}`)}
                       </option>
                     ))}
                   </select>
                 </Field>
-                <Field label="Quantity (trays)">
+                <Field label={t("quantityTrays")}>
                   <input
                     className={fieldClass}
                     type="number"
@@ -140,7 +139,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                     disabled={loading}
                   />
                 </Field>
-                <Field label="Delivery location">
+                <Field label={t("deliveryLocation")}>
                   <input
                     className={fieldClass}
                     value={location}
@@ -149,7 +148,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                     disabled={loading}
                   />
                 </Field>
-                <Field label="Required date">
+                <Field label={t("requiredDate")}>
                   <input
                     className={fieldClass}
                     type="date"
@@ -159,7 +158,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                     disabled={loading}
                   />
                 </Field>
-                <Field label="Target price / tray (RWF)">
+                <Field label={t("targetPricePerTray")}>
                   <input
                     className={fieldClass}
                     type="number"
@@ -169,7 +168,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                     disabled={loading}
                   />
                 </Field>
-                <Field label="Notes">
+                <Field label={t("notes")}>
                   <input
                     className={fieldClass}
                     value={notes}
@@ -188,7 +187,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                       <ButtonLoader label="Sending…" />
                     ) : (
                       <>
-                        Send buy request <Icon name="arrow" />
+                        {t("sendRequest")} <Icon name="arrow" />
                       </>
                     )}
                   </button>
@@ -198,24 +197,22 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
           </Panel>
         ) : (
           <Panel
-            title="How confirmation works"
-            subtitle="Confirm or reject requests for your listings only."
+            title={t("howConfirmationWorks")}
+            subtitle={t("confirmationDescription")}
           >
             <ol className="m-0 list-decimal space-y-3 pl-4 text-xs text-soko-muted">
-              <li>Buyers request stock from your product listings.</li>
-              <li>Confirm available trays and your offer price, or reject.</li>
-              <li>Buyer pays against the confirmed deal.</li>
-              <li>You request transport once payment shows on the deal.</li>
+              <li>{t("confirmationSteps.step1")}</li>
+              <li>{t("confirmationSteps.step2")}</li>
+              <li>{t("confirmationSteps.step3")}</li>
+              <li>{t("confirmationSteps.step4")}</li>
             </ol>
           </Panel>
         )}
 
         <Panel
-          title={mode === "mine" ? "My RFQs" : "Open RFQs"}
+          title={mode === "mine" ? t("myRfqs") : t("openRfqs")}
           subtitle={
-            mode === "mine"
-              ? "RFQs you published here. Product purchases appear under Deals."
-              : "Open RFQs from buyers — confirm or reject available quantity."
+            mode === "mine" ? t("myRfqsDescription") : t("openRfqsDescription")
           }
         >
           {listLoading ? (
@@ -225,7 +222,7 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
               message={
                 mode === "mine"
                   ? "No buy requests yet. Use the form to publish one."
-                  : "No open buy requests yet."
+                  : t("noOpenRequests")
               }
             />
           ) : (
@@ -242,27 +239,38 @@ export function BuyRequestsPanel({ mode }: { mode: "mine" | "incoming" }) {
                       </strong>
                       <small className="text-[0.5625rem] text-soko-muted">
                         {mode === "mine"
-                          ? `To suppliers and aggregators · ${request.deliveryLocation}`
-                          : `${request.buyerBusiness || request.buyerName} · ${request.deliveryLocation}`}
+                          ? t("toSuppliersAndAggregators", {
+                              location: request.deliveryLocation,
+                            })
+                          : t("buyerAndLocation", {
+                              buyer: request.buyerBusiness || request.buyerName,
+                              location: request.deliveryLocation,
+                            })}
                       </small>
                     </div>
                     <span className="inline-flex rounded-xl bg-[#fff1e6] px-2 py-1 text-[0.5625rem] font-bold text-[#c2410c]">
-                      {request.status === "OPEN" ? "Open" : request.status}
+                      {request.status === "OPEN" ? t("open") : request.status}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-[0.625rem] max-sm:grid-cols-2">
                     <div>
-                      <span className="block text-soko-muted">Requested</span>
+                      <span className="block text-soko-muted">
+                        {t("requested")}
+                      </span>
                       <b>
                         {request.quantity} {request.unit}
                       </b>
                     </div>
                     <div>
-                      <span className="block text-soko-muted">Target</span>
+                      <span className="block text-soko-muted">
+                        {t("target")}
+                      </span>
                       <b>{formatRwf(request.targetPrice)}/tray</b>
                     </div>
                     <div>
-                      <span className="block text-soko-muted">Needed by</span>
+                      <span className="block text-soko-muted">
+                        {t("neededBy")}
+                      </span>
                       <b>{request.requiredDate}</b>
                     </div>
                   </div>

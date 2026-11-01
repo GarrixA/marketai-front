@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { ButtonLoader } from "@/components/ActionLoader";
@@ -27,6 +28,7 @@ export function RegisterModal({
   onClose,
   onSwitchToLogin,
 }: RegisterModalProps) {
+  const { t } = useTranslation("auth");
   const { showError, showSuccess, dialog } = useAppDialog();
   const [form, setForm] = useState(emptyForm);
   const [showPassword, setShowPassword] = useState(false);
@@ -41,7 +43,9 @@ export function RegisterModal({
     if (loading) return;
 
     if (form.password !== form.confirmPassword) {
-      showError("Passwords do not match.", { title: "Check your password" });
+      void showError(t("register.passwordMismatch"), {
+        title: t("register.passwordMismatchTitle"),
+      });
       return;
     }
 
@@ -57,12 +61,17 @@ export function RegisterModal({
       });
       setForm(emptyForm());
       await showSuccess(
-        `${result.message} Next: open the verification link emailed to ${result.email} and enter the 6-digit code.`,
-        { title: "Step 1 complete", confirmLabel: "OK" }
+        t("register.successMessage", {
+          message: result.message,
+          email: result.email,
+        }),
+        { title: t("register.successTitle"), confirmLabel: t("common.ok") }
       );
       onClose();
     } catch (err) {
-      await showError(formatApiError(err), { title: "Registration failed" });
+      await showError(formatApiError(err), {
+        title: t("register.failedTitle"),
+      });
     } finally {
       setLoading(false);
     }
@@ -78,7 +87,7 @@ export function RegisterModal({
             className="absolute top-4 right-4 z-2 grid h-9 w-9 place-items-center rounded-full border border-soko-line bg-white disabled:opacity-50"
             onClick={onClose}
             disabled={loading}
-            aria-label="Close register"
+            aria-label={t("register.close")}
           >
             <Icon name="close" />
           </button>
@@ -88,39 +97,38 @@ export function RegisterModal({
           </div>
 
           <span className="text-[0.6875rem] font-extrabold tracking-[0.1375rem] text-soko-green-2 uppercase">
-            Step 1 of 3
+            {t("register.eyebrow")}
           </span>
           <h2 className="my-2 font-display text-[1.875rem] font-bold">
-            Join Soko.
+            {t("register.title")}
           </h2>
           <p className="mt-0 text-xs text-soko-muted">
-            Create your account, then verify email and choose a role before
-            signing in.
+            {t("register.description")}
           </p>
 
           <form className="mt-6" onSubmit={(e) => void submit(e)}>
             <div className="grid gap-3.5 sm:grid-cols-2">
               <label className="block text-[0.625rem] font-bold">
-                First name
+                {t("register.firstName")}
                 <input
                   type="text"
                   value={form.firstName}
                   onChange={(e) => setField("firstName", e.target.value)}
                   className="mt-1.5 block w-full rounded-1.25 border border-soko-line p-2.75 text-xs outline-soko-navy disabled:opacity-60"
-                  placeholder="Aline"
+                  placeholder={t("register.firstNamePlaceholder")}
                   autoComplete="given-name"
                   required
                   disabled={loading}
                 />
               </label>
               <label className="block text-[0.625rem] font-bold">
-                Last name
+                {t("register.lastName")}
                 <input
                   type="text"
                   value={form.lastName}
                   onChange={(e) => setField("lastName", e.target.value)}
                   className="mt-1.5 block w-full rounded-1.25 border border-soko-line p-2.75 text-xs outline-soko-navy disabled:opacity-60"
-                  placeholder="Kabera"
+                  placeholder={t("register.lastNamePlaceholder")}
                   autoComplete="family-name"
                   required
                   disabled={loading}
@@ -129,13 +137,13 @@ export function RegisterModal({
             </div>
 
             <label className="mt-3.5 block text-[0.625rem] font-bold">
-              Email address
+              {t("common.email")}
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setField("email", e.target.value)}
                 className="mt-1.5 block w-full rounded-1.25 border border-soko-line p-2.75 text-xs outline-soko-navy disabled:opacity-60"
-                placeholder="name@company.rw"
+                placeholder={t("common.emailPlaceholder")}
                 autoComplete="email"
                 required
                 disabled={loading}
@@ -143,13 +151,13 @@ export function RegisterModal({
             </label>
 
             <label className="mt-3.5 block text-[0.625rem] font-bold">
-              Phone
+              {t("register.phone")}
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setField("phone", e.target.value)}
                 className="mt-1.5 block w-full rounded-1.25 border border-soko-line p-2.75 text-xs outline-soko-navy disabled:opacity-60"
-                placeholder="+2507…"
+                placeholder={t("register.phonePlaceholder")}
                 autoComplete="tel"
                 required
                 disabled={loading}
@@ -157,14 +165,14 @@ export function RegisterModal({
             </label>
 
             <label className="mt-3.5 block text-[0.625rem] font-bold">
-              Password
+              {t("common.password")}
               <span className="relative mt-1.5 block">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={form.password}
                   onChange={(e) => setField("password", e.target.value)}
                   className="block w-full rounded-1.25 border border-soko-line p-2.75 pr-10 text-xs outline-soko-navy disabled:opacity-60"
-                  placeholder="At least 8 characters"
+                  placeholder={t("register.passwordPlaceholder")}
                   autoComplete="new-password"
                   required
                   minLength={8}
@@ -174,7 +182,11 @@ export function RegisterModal({
                   type="button"
                   className="absolute top-1/2 right-2.5 grid -translate-y-1/2 place-items-center border-0 bg-transparent p-0.5 text-soko-muted hover:text-soko-navy"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword
+                      ? t("common.hidePassword")
+                      : t("common.showPassword")
+                  }
                   disabled={loading}
                 >
                   <Icon name={showPassword ? "eyeOff" : "eye"} size={16} />
@@ -183,13 +195,13 @@ export function RegisterModal({
             </label>
 
             <label className="mt-3.5 block text-[0.625rem] font-bold">
-              Confirm password
+              {t("register.confirmPassword")}
               <input
                 type={showPassword ? "text" : "password"}
                 value={form.confirmPassword}
                 onChange={(e) => setField("confirmPassword", e.target.value)}
                 className="mt-1.5 block w-full rounded-1.25 border border-soko-line p-2.75 text-xs outline-soko-navy disabled:opacity-60"
-                placeholder="Repeat password"
+                placeholder={t("register.confirmPasswordPlaceholder")}
                 autoComplete="new-password"
                 required
                 minLength={8}
@@ -204,24 +216,24 @@ export function RegisterModal({
               aria-busy={loading}
             >
               {loading ? (
-                <ButtonLoader label="Creating account…" />
+                <ButtonLoader label={t("register.submitting")} />
               ) : (
                 <>
-                  Create account <Icon name="arrow" />
+                  {t("register.submit")} <Icon name="arrow" />
                 </>
               )}
             </button>
           </form>
 
           <p className="mt-5 mb-0 text-center text-xs text-soko-muted">
-            Already have an account?{" "}
+            {t("register.alreadyHaveAccount")}{" "}
             <button
               type="button"
               className="border-0 bg-transparent p-0 font-bold text-soko-navy underline-offset-2 hover:underline disabled:opacity-50"
               onClick={onSwitchToLogin}
               disabled={loading}
             >
-              Sign in
+              {t("common.signIn")}
             </button>
           </p>
         </div>

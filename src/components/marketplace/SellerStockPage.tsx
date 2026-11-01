@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ListingDetail } from "@/components/SokoApp";
@@ -70,6 +71,7 @@ export function SellerStockPage({
   slug: string;
 }) {
   const router = useRouter();
+  const { t } = useTranslation("common");
   const { dialog, showError, showSuccess } = useAppDialog();
   const { data, isLoading, isError } = useGetSellerBySlugQuery(slug);
   const [createDeal] = useCreateDealMutation();
@@ -147,7 +149,7 @@ export function SellerStockPage({
         ) : (
           <SellerProfileView
             seller={seller}
-            actionLabel={canBuy ? "Buy" : "View listing"}
+            actionLabel={canBuy ? t("buy") : t("viewListing")}
             onSelect={(product) => {
               if (canBuy) {
                 setBuying(product);
@@ -187,9 +189,8 @@ export function SellerStockPage({
               : deal.productName;
             setTradeResult({
               kind: "buy",
-              title: "Buy request sent",
-              message:
-                "The seller was notified on Deals. They will confirm available quantity before payment.",
+              title: t("buyRequestSent"),
+              message: t("buyRequestSentMessage"),
               details: [
                 productLabel,
                 `${deal.quantity} ${deal.unit.toLowerCase()} · ${formatRwf(deal.targetPrice)} / ${deal.unit.toLowerCase()}`,

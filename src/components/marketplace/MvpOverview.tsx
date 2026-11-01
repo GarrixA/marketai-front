@@ -1,5 +1,6 @@
 "use client";
 
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/lib/ui";
 import { formatRwf } from "@/lib/marketplaceStore";
 import { Panel } from "@/components/marketplace/uiBits";
@@ -23,6 +24,7 @@ function confirmedValue(deal: ApiDeal) {
 }
 
 export function MvpOverview({ role }: { role: DashboardRole }) {
+  const { t } = useTranslation("dashboard");
   const session = getSession();
   const { data: products = [], isLoading: productsLoading } =
     useListAvailableProductsQuery();
@@ -122,7 +124,11 @@ export function MvpOverview({ role }: { role: DashboardRole }) {
         ]
       : role === "logistics"
         ? [
-            ["Listings", dash(String(liveProducts.length)), "Active products"],
+            [
+              t("listings"),
+              dash(String(liveProducts.length)),
+              t("activeProducts"),
+            ],
             [
               "Supplier lots",
               dash(String(supplierListings.length)),
@@ -142,41 +148,45 @@ export function MvpOverview({ role }: { role: DashboardRole }) {
         : role === "admin"
           ? [
               [
-                "Listings",
+                t("listings"),
                 dash(String(liveProducts.length)),
-                "Active products",
+                t("activeProducts"),
               ],
               [
-                "Supply quantity",
+                t("supplyQuantity"),
                 dash(marketTrays.toLocaleString("en-RW")),
-                "Across listings",
+                t("acrossListings"),
               ],
-              ["Avg list price", dash(formatRwf(avgPrice)), "Live catalog"],
               [
-                "Confirmed value",
+                t("averageListPrice"),
+                dash(formatRwf(avgPrice)),
+                t("liveCatalog"),
+              ],
+              [
+                t("confirmedValue"),
                 dash(formatRwf(confirmedTotal), dealsLoading),
-                "Agreed deals",
+                t("agreedDeals"),
               ],
             ]
           : role === "aggregator"
             ? [
                 [
-                  "My stock",
+                  t("myStock"),
                   dash(myDbTrays.toLocaleString("en-RW")),
-                  `${myDbStock.length} lots`,
+                  t("lots", { count: myDbStock.length }),
                 ],
                 [
-                  "Buy requests",
+                  t("buyRequests"),
                   dash(
                     String(
                       myDeals.filter((d) => d.status !== "REJECTED").length
                     ),
                     dealsLoading
                   ),
-                  "Sourcing deals",
+                  t("sourcingDeals"),
                 ],
                 [
-                  "Sell notices",
+                  t("sellNotices"),
                   dash(
                     String(
                       incomingDeals.filter((d) => d.status === "REQUESTED")
@@ -184,47 +194,51 @@ export function MvpOverview({ role }: { role: DashboardRole }) {
                     ),
                     dealsLoading
                   ),
-                  "Need confirmation",
+                  t("needConfirmation"),
                 ],
                 [
-                  "Market to buy",
+                  t("marketToBuy"),
                   dash(
                     String(
                       liveProducts.filter((p) => p.ownerId !== session?.userId)
                         .length
                     )
                   ),
-                  "Available listings",
+                  t("availableListings"),
                 ],
               ]
             : [
                 [
-                  "My stock",
+                  t("myStock"),
                   dash(myDbTrays.toLocaleString("en-RW")),
-                  `${myDbStock.length} lots`,
+                  t("lots", { count: myDbStock.length }),
                 ],
                 [
                   "Open requests",
                   dash(String(requestedDeals.length), dealsLoading),
-                  "Need confirmation",
+                  t("needConfirmation"),
                 ],
                 [
                   "Confirmed",
                   dash(String(confirmedDeals.length), dealsLoading),
                   "Quantity agreed",
                 ],
-                ["Avg list price", dash(formatRwf(avgPrice)), "Marketplace"],
+                [
+                  t("averageListPrice"),
+                  dash(formatRwf(avgPrice)),
+                  "Marketplace",
+                ],
               ];
 
   const analyticsRows = [
-    ["Total products", dash(String(liveProducts.length))],
-    ["Supplier listings", dash(String(supplierListings.length))],
-    ["Aggregator listings", dash(String(aggregatorListings.length))],
-    ["Quantity available", dash(marketTrays.toLocaleString("en-RW"))],
-    ["Average price", dash(formatRwf(avgPrice))],
-    ["Active deals", dash(String(activeDeals.length), dealsLoading)],
-    ["Confirmed deals", dash(String(confirmedDeals.length), dealsLoading)],
-    ["Confirmed value", dash(formatRwf(confirmedTotal), dealsLoading)],
+    [t("totalProducts"), dash(String(liveProducts.length))],
+    [t("supplierListings"), dash(String(supplierListings.length))],
+    [t("aggregatorListings"), dash(String(aggregatorListings.length))],
+    [t("quantityAvailable"), dash(marketTrays.toLocaleString("en-RW"))],
+    [t("averagePrice"), dash(formatRwf(avgPrice))],
+    [t("activeDeals"), dash(String(activeDeals.length), dealsLoading)],
+    [t("confirmedDeals"), dash(String(confirmedDeals.length), dealsLoading)],
+    [t("confirmedValue"), dash(formatRwf(confirmedTotal), dealsLoading)],
   ];
 
   return (
@@ -250,22 +264,19 @@ export function MvpOverview({ role }: { role: DashboardRole }) {
       </div>
 
       <div className="grid grid-cols-[1.7fr_0.9fr] gap-4.25 max-md:grid-cols-1">
-        <Panel
-          title="This year"
-          subtitle="Listings and deals opened each month, from live records."
-        >
+        <Panel title={t("thisYear")} subtitle={t("yearlyActivityDescription")}>
           <SupplyOverviewChart
             loading={productsLoading || dealsLoading}
             series={[
               {
-                name: "Listings",
+                name: t("listingsChartLabel"),
                 dates: products.map((product) => product.createdAt),
               },
               ...(role === "logistics"
                 ? []
                 : [
                     {
-                      name: "Deals",
+                      name: t("dealsChartLabel"),
                       dates: deals.map((deal) => deal.createdAt),
                     },
                   ]),
@@ -274,8 +285,8 @@ export function MvpOverview({ role }: { role: DashboardRole }) {
         </Panel>
 
         <Panel
-          title="Marketplace analytics"
-          subtitle="Live figures from the product catalog and deals."
+          title={t("marketplaceAnalytics")}
+          subtitle={t("analyticsDescription")}
         >
           <div className="grid grid-cols-1 gap-x-6 gap-y-0">
             {analyticsRows.map(([label, value]) => (

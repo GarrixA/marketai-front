@@ -1,8 +1,12 @@
 "use client";
 
+import useTranslation from "next-translate/useTranslation";
 import { Icon, btn } from "@/lib/ui";
 
 export function OrderOverviewPanel({ supplier }: { supplier: boolean }) {
+  const { t: tDeals } = useTranslation("deals");
+  const { t: tOrders } = useTranslation("orders");
+  const { t: tMarket } = useTranslation("market");
   return (
     <div className="grid grid-cols-[1.9fr_0.85fr] gap-4.25 max-md:grid-cols-1">
       <section className="rounded-1.75 border border-soko-line bg-white p-5">
@@ -29,16 +33,16 @@ export function OrderOverviewPanel({ supplier }: { supplier: boolean }) {
                   ORDER
                 </th>
                 <th className="border-b border-soko-line px-2.75 py-2.75 text-left text-[0.5rem] tracking-wide text-soko-muted uppercase">
-                  {supplier ? "BUYER" : "SUPPLIER"}
+                  {supplier ? tDeals("buyer") : tDeals("supplier")}
                 </th>
                 <th className="border-b border-soko-line px-2.75 py-2.75 text-left text-[0.5rem] tracking-wide text-soko-muted uppercase">
-                  PRODUCT
+                  {tDeals("product")}
                 </th>
                 <th className="border-b border-soko-line px-2.75 py-2.75 text-left text-[0.5rem] tracking-wide text-soko-muted uppercase">
-                  AMOUNT
+                  {tDeals("amount")}
                 </th>
                 <th className="border-b border-soko-line px-2.75 py-2.75 text-left text-[0.5rem] tracking-wide text-soko-muted uppercase">
-                  STATUS
+                  {tDeals("status")}
                 </th>
                 <th className="border-b border-soko-line px-2.75 py-2.75" />
               </tr>
@@ -58,7 +62,7 @@ export function OrderOverviewPanel({ supplier }: { supplier: boolean }) {
                   </small>
                 </td>
                 <td className="border-b border-soko-line px-2.75 py-3.75">
-                  Fresh eggs · Large
+                  {tMarket("freshEggsLarge")}
                   <small className="mt-0.5 block text-[0.5625rem] text-soko-muted">
                     50 trays
                   </small>
@@ -68,7 +72,7 @@ export function OrderOverviewPanel({ supplier }: { supplier: boolean }) {
                 </td>
                 <td className="border-b border-soko-line px-2.75 py-3.75">
                   <span className="inline-flex! rounded-xl px-2 py-1 text-[0.5625rem]! font-bold text-soko-cta-hover bg-[#fff4e5]">
-                    {supplier ? "Review order" : "In transit"}
+                    {supplier ? "Review order" : tOrders("inTransit")}
                   </span>
                 </td>
                 <td className="border-b border-soko-line px-2.75 py-3.75">
@@ -99,7 +103,7 @@ export function OrderOverviewPanel({ supplier }: { supplier: boolean }) {
                 </td>
                 <td className="border-b border-soko-line px-2.75 py-3.75">
                   <span className="inline-flex! rounded-xl px-2 py-1 text-[0.5625rem]! font-bold text-soko-green-2 bg-soko-slate">
-                    {supplier ? "Preparing" : "Confirmed"}
+                    {supplier ? "Preparing" : tDeals("confirmed")}
                   </span>
                 </td>
                 <td className="border-b border-soko-line px-2.75 py-3.75">
@@ -119,21 +123,21 @@ export function OrderOverviewPanel({ supplier }: { supplier: boolean }) {
             <p className="m-0 text-[0.625rem] text-soko-muted">#SOK-10245</p>
           </div>
           <span className="inline-flex! rounded-xl px-2 py-1 text-[0.5625rem]! font-bold text-soko-cta-hover bg-[#fff4e5]">
-            In transit
+            {tOrders("inTransit")}
           </span>
         </div>
         <div className="my-1 mb-4.25">
           {[
-            "Order confirmed",
-            "Payment received",
-            "Preparing",
-            "Dispatched",
-            "In transit",
-            "Delivered",
-            "Confirmed",
-            "Rated",
-          ].map((s, i) => (
-            <div className="relative flex min-h-9.5 gap-2.5" key={s}>
+            ["Order confirmed", "Order confirmed"],
+            ["Payment received", tOrders("steps.paymentReceived")],
+            ["Preparing", "Preparing"],
+            ["Dispatched", "Dispatched"],
+            ["In transit", tOrders("steps.inTransit")],
+            ["Delivered", tOrders("delivered")],
+            ["Confirmed", tDeals("confirmed")],
+            ["Rated", "Rated"],
+          ].map(([id, s], i) => (
+            <div className="relative flex min-h-9.5 gap-2.5" key={id}>
               <span
                 className={`z-1 grid h-4.25 w-4.25 place-items-center rounded-full border ${
                   i < 4
@@ -163,7 +167,7 @@ export function OrderOverviewPanel({ supplier }: { supplier: boolean }) {
           ))}
         </div>
         <button className={btn.outlineFull}>
-          Track delivery <Icon name="arrow" size={16} />
+          {tDeals("trackDelivery")} <Icon name="arrow" size={16} />
         </button>
       </section>
     </div>

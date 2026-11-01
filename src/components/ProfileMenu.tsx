@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import useTranslation from "next-translate/useTranslation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Icon } from "@/components/Icon";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { UserAvatar } from "@/components/UserAvatar";
 
 const profileMenuEase = [0.22, 1, 0.36, 1] as const;
@@ -64,6 +66,7 @@ export function ProfileMenu({
   displayName: string;
   avatarUrl?: string | null;
 }) {
+  const { t } = useTranslation("accountMenu");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -95,7 +98,7 @@ export function ProfileMenu({
         type="button"
         className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-soko-line bg-soko-slate text-soko-ink hover:bg-white"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Open profile menu"
+        aria-label={t("openProfileMenu")}
         aria-expanded={open}
         aria-haspopup="menu"
       >
@@ -112,7 +115,7 @@ export function ProfileMenu({
         {open ? (
           <motion.div
             role="menu"
-            aria-label="Profile"
+            aria-label={t("myAccount")}
             className="absolute top-[calc(100%+0.5rem)] right-0 z-50 w-64 overflow-hidden rounded-2.5 border border-soko-line bg-white text-soko-ink shadow-lg"
             variants={profileMenuPanel}
             initial="hidden"
@@ -134,7 +137,7 @@ export function ProfileMenu({
                   {displayName}
                 </strong>
                 <small className="block truncate text-[0.625rem] text-soko-muted">
-                  My account
+                  {t("myAccount")}
                 </small>
               </div>
             </motion.div>
@@ -146,7 +149,7 @@ export function ProfileMenu({
               onClick={() => go("/dashboard")}
             >
               <Icon name="grid" size={16} className="text-soko-muted" />
-              <span className="flex-1 font-medium">Dashboard</span>
+              <span className="flex-1 font-medium">{t("dashboard")}</span>
               <Icon name="chevron" size={14} className="text-soko-muted" />
             </motion.button>
             <motion.button
@@ -157,7 +160,7 @@ export function ProfileMenu({
               onClick={() => go("/dashboard/account")}
             >
               <Icon name="user" size={16} className="text-soko-muted" />
-              <span className="flex-1 font-medium">My account</span>
+              <span className="flex-1 font-medium">{t("myAccount")}</span>
               <Icon name="chevron" size={14} className="text-soko-muted" />
             </motion.button>
             <motion.button
@@ -168,9 +171,16 @@ export function ProfileMenu({
               onClick={() => go("/dashboard/settings")}
             >
               <Icon name="settings" size={16} className="text-soko-muted" />
-              <span className="flex-1 font-medium">Settings</span>
+              <span className="flex-1 font-medium">{t("settings")}</span>
               <Icon name="chevron" size={14} className="text-soko-muted" />
             </motion.button>
+            <motion.div
+              variants={profileMenuItem}
+              className="mx-1.5 my-1.5 rounded-1.25 border border-soko-line bg-soko-slate/50 px-3 py-2.5"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <LanguageSwitcher className="w-full justify-between" />
+            </motion.div>
             <motion.div
               variants={profileMenuItem}
               className="mx-1.5 my-1 border-t border-soko-line"
@@ -186,7 +196,7 @@ export function ProfileMenu({
               }}
             >
               <Icon name="arrow" className="rotate-180" size={16} />
-              <span>Logout</span>
+              <span>{t("logout")}</span>
             </motion.button>
           </motion.div>
         ) : null}

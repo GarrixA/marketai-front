@@ -20,6 +20,12 @@ export const seedMarketplace = (): MarketplaceState => ({
   sellOffers: [],
 });
 
+const serverMarketplaceState = seedMarketplace();
+
+export function getServerMarketplaceState(): MarketplaceState {
+  return serverMarketplaceState;
+}
+
 type Listener = () => void;
 
 let memoryState: MarketplaceState | null = null;

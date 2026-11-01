@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { btn } from "@/lib/ui";
 import {
@@ -17,6 +18,7 @@ type SearchBarProps = {
 };
 
 export function SearchBar({ value, onChange, onSearch }: SearchBarProps = {}) {
+  const { t } = useTranslation("search");
   const [internal, setInternal] =
     useState<ListingSearchFilters>(EMPTY_SEARCH_FILTERS);
   const filters = value ?? internal;
@@ -43,7 +45,7 @@ export function SearchBar({ value, onChange, onSearch }: SearchBarProps = {}) {
     >
       <label className="border-r border-soko-line px-4.5 py-0.5 max-md:rounded-md max-md:border-0 max-md:bg-soko-slate max-md:p-3 max-sm:col-span-full">
         <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-soko-muted uppercase">
-          What are you looking for?
+          {t("lookingFor")}
         </span>
         <div className="flex items-center gap-2">
           <Icon name="search" className="text-soko-navy" />
@@ -51,14 +53,14 @@ export function SearchBar({ value, onChange, onSearch }: SearchBarProps = {}) {
             value={filters.query}
             onChange={(e) => update({ query: e.target.value })}
             className="w-full border-0 bg-transparent text-[0.8125rem] text-soko-ink outline-none"
-            placeholder="Eggs, grades, suppliers…"
+            placeholder={t("keywordPlaceholder")}
             aria-label="Search eggs and suppliers"
           />
         </div>
       </label>
       <label className="border-r border-soko-line px-4.5 py-0.5 max-md:rounded-md max-md:border-0 max-md:bg-soko-slate max-md:p-3">
         <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-soko-muted uppercase">
-          Delivery location
+          {t("deliveryLocation")}
         </span>
         <div className="flex items-center gap-2">
           <Icon name="pin" className="text-soko-navy" />
@@ -66,14 +68,14 @@ export function SearchBar({ value, onChange, onSearch }: SearchBarProps = {}) {
             value={filters.location}
             onChange={(e) => update({ location: e.target.value })}
             className="w-full border-0 bg-transparent text-[0.8125rem] text-soko-ink outline-none"
-            placeholder="Kigali, Musanze..."
+            placeholder={t("locationPlaceholder")}
             aria-label="Delivery location"
           />
         </div>
       </label>
       <label className="border-r border-soko-line px-4.5 py-0.5 max-md:hidden max-md:rounded-md max-md:border-0 max-md:bg-soko-slate max-md:p-3 max-sm:hidden">
         <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-soko-muted uppercase">
-          Quantity
+          {t("quantity")}
         </span>
         <select
           value={filters.quantity}
@@ -83,7 +85,7 @@ export function SearchBar({ value, onChange, onSearch }: SearchBarProps = {}) {
           className="w-full border-0 bg-transparent text-[0.8125rem] text-soko-ink outline-none"
           aria-label="Order quantity"
         >
-          <option value="">Any size</option>
+          <option value="">{t("anySize")}</option>
           <option value="10-50">10–50 units</option>
           <option value="50-200">50–200 units</option>
           <option value="200+">200+ units</option>
@@ -91,7 +93,7 @@ export function SearchBar({ value, onChange, onSearch }: SearchBarProps = {}) {
       </label>
       <label className="border-r border-soko-line px-4.5 py-0.5 max-md:hidden max-sm:hidden">
         <span className="mb-2 block text-[0.625rem] font-extrabold tracking-[0.05rem] text-soko-muted uppercase">
-          Category
+          {t("category")}
         </span>
         <select
           value={filters.category || "Any category"}
@@ -101,7 +103,7 @@ export function SearchBar({ value, onChange, onSearch }: SearchBarProps = {}) {
         >
           {SEARCH_CATEGORIES.map((category) => (
             <option key={category} value={category}>
-              {category}
+              {category === "Any category" ? t("anyCategory") : category}
             </option>
           ))}
         </select>
@@ -111,7 +113,7 @@ export function SearchBar({ value, onChange, onSearch }: SearchBarProps = {}) {
         className={`${btn.search} max-md:justify-center max-md:px-3.5 max-md:py-3.5`}
       >
         <Icon name="search" />
-        Search marketplace
+        {t("searchMarketplace")}
       </button>
     </form>
   );

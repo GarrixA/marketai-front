@@ -1,8 +1,10 @@
 "use client";
 
+import useTranslation from "next-translate/useTranslation";
 import { Icon, btn } from "@/lib/ui";
 
 export function LogisticsDashboardOverview() {
+  const { t } = useTranslation("logisticsDashboard");
   return (
     <div className="grid grid-cols-[1.9fr_0.85fr] gap-4.25 max-md:grid-cols-1">
       <section className="rounded-1.75 border border-soko-line bg-white p-5">
@@ -32,7 +34,7 @@ export function LogisticsDashboardOverview() {
             </span>
             <div>
               <small className="block text-[0.4375rem] tracking-wide text-soko-muted uppercase">
-                PICKUP
+                {t("pickup")}
               </small>
               <strong className="mt-0.5 block text-[0.6875rem]">
                 {job[0]}
@@ -92,7 +94,7 @@ export function LogisticsDashboardOverview() {
         <div>
           <p className="flex justify-between border-b border-soko-line py-2.5 text-[0.625rem]">
             <span className="text-soko-muted">Current status</span>
-            <strong>In transit</strong>
+            <strong>{t("inTransit")}</strong>
           </p>
           <p className="flex justify-between border-b border-soko-line py-2.5 text-[0.625rem]">
             <span className="text-soko-muted">Est. arrival</span>

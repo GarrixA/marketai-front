@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import useTranslation from "next-translate/useTranslation";
 import { AnimatePresence, motion } from "framer-motion";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ProfileMenu } from "@/components/ProfileMenu";
 import { UserAvatar } from "@/components/UserAvatar";
 import { ActionButton, Icon, Logo } from "@/lib/ui";
@@ -38,12 +40,34 @@ import {
   type DashboardSection,
 } from "@/lib/dashboardNav";
 
-const workspaceLabel: Record<DashboardRole, string> = {
-  buyer: "Buyer",
-  supplier: "Supplier",
-  aggregator: "Aggregator",
-  logistics: "Logistics",
-  admin: "Operations",
+type TranslateFn = (key: string, query?: Record<string, unknown>) => string;
+
+const SECTION_TITLE_KEY: Partial<Record<DashboardSection, string>> = {
+  Overview: "workspace:overview",
+  Market: "market:title",
+  Products: "products:title",
+  "Sell Offers": "sellOffers:title",
+  "Buy Requests": "buyRequests:title",
+  Deals: "deals:title",
+  Orders: "orders:title",
+  Sales: "sales:title",
+  Transport: "logisticsDashboard:transport",
+  Income: "logisticsDashboard:income",
+  Users: "users:title",
+  Support: "support:title",
+};
+
+function sectionLabel(section: DashboardSection, t: TranslateFn) {
+  const key = SECTION_TITLE_KEY[section];
+  return key ? t(key) : section;
+}
+
+const WORKSPACE_ROLE_KEY: Record<DashboardRole, string> = {
+  buyer: "workspace:roles.buyer",
+  supplier: "workspace:roles.supplier",
+  aggregator: "workspace:roles.aggregator",
+  logistics: "workspace:roles.logistics",
+  admin: "workspace:roles.admin",
 };
 
 function useWorkspaceBadges(role: DashboardRole) {
@@ -118,6 +142,7 @@ function SidebarNav({
   avatarUrl?: string | null;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const badges = useWorkspaceBadges(role);
 
   const go = (section: DashboardSection) => {
@@ -136,9 +161,9 @@ function SidebarNav({
         />
       </div>
       <div className="px-2.75 pb-3.25 text-[0.5rem] tracking-[0.09375rem] text-soko-muted uppercase">
-        WORKSPACE{" "}
+        {t("workspace:workspace")}{" "}
         <span className="float-right text-soko-ink">
-          {workspaceLabel[role].toUpperCase()}
+          {t(WORKSPACE_ROLE_KEY[role])}
         </span>
       </div>
       <nav className="flex flex-col gap-0.5 overflow-auto">
@@ -177,7 +202,9 @@ function SidebarNav({
                   />
                 ) : null}
               </span>
-              <span className="min-w-0 flex-1 truncate">{item}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {sectionLabel(item, t)}
+              </span>
               <NavBadge count={isActive ? 0 : count} />
             </motion.button>
           );
@@ -192,7 +219,7 @@ function SidebarNav({
         }}
       >
         <Icon name="arrow" className="rotate-180" />
-        <span>Public marketplace</span>
+        <span>{t("navigation:publicMarketplace")}</span>
       </button>
       <div className="mt-3 border-t border-soko-line px-2 pt-3.25">
         <div className="flex items-center gap-2.5">
@@ -207,12 +234,13 @@ function SidebarNav({
               {displayName}
             </strong>
             <small className="block truncate text-[0.5625rem] text-soko-muted">
-              {businessName || "Verified account"}
+              {businessName || t("workspace:verifiedAccount")}
             </small>
           </div>
         </div>
         <button
           type="button"
+          data-testid="dashboard-logout"
           className="mt-3 flex w-full items-center gap-2 border-0 bg-transparent px-0 py-1.5 text-left text-[0.6875rem] font-bold text-soko-muted hover:text-soko-ink"
           onClick={() => {
             onLogout();
@@ -220,7 +248,7 @@ function SidebarNav({
           }}
         >
           <Icon name="arrow" className="rotate-180" size={15} />
-          <span>Log out</span>
+          <span>{t("navigation:logout")}</span>
         </button>
       </div>
     </>
@@ -347,6 +375,7 @@ export function DashboardShell({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useTranslation();
   const session = getSession();
   const utilityPage = utilityPageFromPath(pathname);
   const active = utilityPage ? null : sectionFromPath(pathname);
@@ -471,13 +500,14 @@ export function DashboardShell({
             <MobileMenuButton role={role} onOpen={() => setMenuOpen(true)} />
             <div className="min-w-0">
               <span className="block text-[0.5625rem] text-soko-muted">
-                Soko workspace
+                {t("workspace:title")}
               </span>
               <strong className="block truncate text-[0.8125rem]">
                 {headerName}
               </strong>
             </div>
             <div className="ml-auto flex items-center gap-3">
+              <LanguageSwitcher compact className="max-sm:hidden" />
               <ProfileMenu
                 onLogout={logout}
                 displayName={displayName}
@@ -497,24 +527,28 @@ export function DashboardShell({
                 </p>
                 <h1 className="my-1.5 font-display text-[1.375rem] font-bold sm:text-[1.6875rem]">
                   {utilityPage === "account"
-                    ? "My account"
+                    ? t("myAccount:title")
                     : utilityPage === "settings"
-                      ? "Settings"
+                      ? t("settings:title")
                       : active === "Overview"
-                        ? `Good morning, ${displayName.split(" ")[0] || "there"}.`
-                        : active}
+                        ? t("workspace:goodMorningNamed", {
+                            name: displayName.split(" ")[0] || "there",
+                          })
+                        : active
+                          ? sectionLabel(active, t)
+                          : null}
                 </h1>
                 <span className="text-xs text-soko-muted">
                   {utilityPage === "account"
-                    ? "View your profile details and manage account security."
+                    ? t("myAccount:description")
                     : utilityPage === "settings"
-                      ? "Workspace preferences for this browser."
+                      ? t("settings:description")
                       : active === "Overview"
                         ? role === "aggregator"
                           ? "Buy and sell from one workspace — market, payments, and transport."
-                          : "Live catalog and deal activity from the marketplace."
+                          : t("workspace:activityDescription")
                         : active === "Products" && role === "admin"
-                          ? "Listings, availability, who is selling, and listed value."
+                          ? t("products:description")
                           : active === "Products"
                             ? role === "aggregator"
                               ? "Manage your products, then buy or sell on the market."
@@ -523,24 +557,30 @@ export function DashboardShell({
                                 : "Buy eggs from suppliers and aggregators."
                             : active === "Market"
                               ? role === "aggregator"
-                                ? "Buy listings or sell into open requests."
+                                ? t("workspace:buySellDescription")
                                 : role === "supplier"
-                                  ? "Open requests you can sell into."
+                                  ? t("market:description")
                                   : "Listings you can buy."
                               : active === "Sell Offers"
-                                ? "New listings from suppliers and aggregators — review and buy."
+                                ? t("sellOffers:description")
                                 : active === "Deals" && role === "admin"
-                                  ? "Volume, status, where each deal is going, and who owns both sides."
+                                  ? t("deals:description")
                                   : active === "Users"
-                                    ? "Create accounts and assign platform roles."
+                                    ? t("users:pageDescription")
                                     : active === "Support"
-                                      ? "Review help requests from buyers and sellers."
+                                      ? t("support:description")
                                       : active === "Orders" &&
                                           role === "aggregator"
                                         ? "Orders for products you sold, and purchases you made."
-                                        : active === "Income"
-                                          ? "Delivery fees credited after a buyer confirms receipt."
-                                          : `Manage ${(active ?? "workspace").toLowerCase()} for the demo marketplace.`}
+                                        : active === "Transport"
+                                          ? t(
+                                              "logisticsDashboard:transportDescription"
+                                            )
+                                          : active === "Income"
+                                            ? t(
+                                                "logisticsDashboard:incomeDescription"
+                                              )
+                                            : `Manage ${(active ?? "workspace").toLowerCase()} for the demo marketplace.`}
                 </span>
               </div>
               {!utilityPage && active !== "Users" ? (
@@ -564,10 +604,10 @@ export function DashboardShell({
                   onClick={onPrimary}
                 >
                   {canRecord
-                    ? "List for sale"
+                    ? t("workspace:listForSale")
                     : role === "logistics"
-                      ? "View transport"
-                      : "Browse products"}
+                      ? t("logisticsDashboard:viewTransport")
+                      : t("workspace:browseProducts")}
                 </ActionButton>
               ) : null}
             </div>

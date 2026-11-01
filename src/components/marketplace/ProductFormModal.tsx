@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import useTranslation from "next-translate/useTranslation";
 import {
   formatRwandaLocation,
   RwandaLocationFields,
@@ -23,10 +24,19 @@ import type {
   ProductPriceUnit,
 } from "@/types/product";
 
-const UNIT_OPTIONS: { value: ProductPriceUnit; label: string }[] = [
-  { value: "TRAY", label: "Tray" },
-  { value: "PIECE", label: "Piece" },
+const UNIT_OPTIONS: { value: ProductPriceUnit; labelKey: string }[] = [
+  { value: "TRAY", labelKey: "units.tray" },
+  { value: "PIECE", labelKey: "units.piece" },
 ];
+
+const GRADE_LABEL_KEYS: Record<string, string> = {
+  Large: "grades.large",
+  Medium: "grades.medium",
+  Small: "grades.small",
+  Mixed: "grades.mixed",
+  "Organic Large": "grades.organicLarge",
+  "Free-range": "grades.freeRange",
+};
 
 const GRADE_OPTIONS = [
   "Large",
@@ -105,6 +115,10 @@ export function ProductFormModal({
   onClose,
   onSuccess,
 }: ProductFormModalProps) {
+  const { t } = useTranslation("listProductForSale");
+  const { t: tSellOffers } = useTranslation("sellOffers");
+  const { t: tDeals } = useTranslation("deals");
+  const { t: tCommon } = useTranslation("common");
   const [createProduct, createState] = useCreateProductMutation();
   const [updateProduct, updateState] = useUpdateProductMutation();
   const [requestSell, requestSellState] = useRequestSellMutation();
@@ -279,7 +293,7 @@ export function ProductFormModal({
             <Icon name="close" />
           </button>
           <h2 className="m-0 pr-10 font-display text-[1.25rem] font-bold sm:text-[1.375rem]">
-            Confirm sell order
+            {tSellOffers("confirmSellOrder")}
           </h2>
           <p className="mt-1 mb-1 text-sm font-bold text-soko-ink">
             {product.name}
@@ -324,7 +338,7 @@ export function ProductFormModal({
                 );
               })}
             </div>
-            <Field label="Price (RWF)">
+            <Field label={t("priceRwf")}>
               <input
                 className={fieldClass}
                 type="number"
@@ -400,7 +414,7 @@ export function ProductFormModal({
                 onClick={onClose}
                 disabled={busy}
               >
-                Cancel
+                {tDeals("cancel")}
               </button>
             </div>
           </form>
@@ -424,10 +438,10 @@ export function ProductFormModal({
         </button>
 
         <h2 className="m-0 pr-10 font-display text-[1.25rem] font-bold sm:text-[1.375rem]">
-          {isUpdate ? "Edit product" : "List product for sale"}
+          {isUpdate ? tCommon("editProduct") : t("title")}
         </h2>
         <p className="mt-1 mb-5 text-[0.6875rem] text-soko-muted">
-          Mark availability and where buyers can find this product.
+          {t("description")}
         </p>
 
         <form
@@ -435,7 +449,7 @@ export function ProductFormModal({
           onSubmit={submit}
         >
           <div className="grid grid-cols-3 gap-2 sm:col-span-2 sm:gap-3">
-            <Field label="Grade">
+            <Field label={t("grade")}>
               <select
                 className={fieldClass}
                 value={form.grade}
@@ -446,13 +460,15 @@ export function ProductFormModal({
               >
                 {gradeChoices.map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {GRADE_LABEL_KEYS[option]
+                      ? t(GRADE_LABEL_KEYS[option])
+                      : option}
                   </option>
                 ))}
               </select>
             </Field>
 
-            <Field label="Price (RWF)">
+            <Field label={t("priceRwf")}>
               <input
                 className={fieldClass}
                 type="number"
@@ -468,7 +484,7 @@ export function ProductFormModal({
               />
             </Field>
 
-            <Field label="Unit">
+            <Field label={t("unit")}>
               <select
                 className={fieldClass}
                 value={form.unit}
@@ -484,14 +500,14 @@ export function ProductFormModal({
               >
                 {UNIT_OPTIONS.map((unit) => (
                   <option key={unit.value} value={unit.value}>
-                    {unit.label}
+                    {t(unit.labelKey)}
                   </option>
                 ))}
               </select>
             </Field>
           </div>
 
-          <Field label="Available quantity">
+          <Field label={t("availableQuantity")}>
             <input
               className={fieldClass}
               type="number"
@@ -508,7 +524,7 @@ export function ProductFormModal({
             />
           </Field>
 
-          <Field label="Min quantity">
+          <Field label={t("minimumQuantity")}>
             <input
               className={fieldClass}
               type="number"
@@ -526,7 +542,7 @@ export function ProductFormModal({
           </Field>
 
           <div className="sm:col-span-2">
-            <Field label="Description">
+            <Field label={t("descriptionLabel")}>
               <textarea
                 className={`${fieldClass} min-h-20 resize-y`}
                 value={form.description}
@@ -555,7 +571,7 @@ export function ProductFormModal({
               }
               disabled={busy}
             />
-            Mark as available
+            {t("markAsAvailable")}
           </label>
 
           <label className="flex items-start gap-2 text-xs text-soko-ink sm:col-span-2">
@@ -572,7 +588,7 @@ export function ProductFormModal({
               disabled={busy}
             />
             <span>
-              Use my profile / delivery location
+              {t("useProfileDeliveryLocation")}
               {form.useMarketplaceLocation ? (
                 <span className="mt-1 block text-soko-muted">
                   {marketplaceLocationLabel}
@@ -613,7 +629,7 @@ export function ProductFormModal({
                 <ButtonLoader label="Saving…" />
               ) : (
                 <>
-                  {isUpdate ? "Save changes" : "List for sale"}{" "}
+                  {isUpdate ? "Save changes" : t("listForSale")}{" "}
                   <Icon name="arrow" />
                 </>
               )}
@@ -624,7 +640,7 @@ export function ProductFormModal({
               onClick={onClose}
               disabled={busy}
             >
-              Cancel
+              {tDeals("cancel")}
             </button>
           </div>
         </form>

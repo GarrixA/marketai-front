@@ -1,0 +1,29 @@
+{
+  "title": "Support",
+  "description": "Review tickets and resolve delivery coordinate issues.",
+  "browseProducts": "Browse Products",
+  "ticketsTitle": "Support tickets",
+  "ticketsDescription": "Open and recent tickets from marketplace users.",
+  "ticketNumber": "Ticket Number",
+  "status": {
+    "open": "Open",
+    "inProgress": "In Progress",
+    "resolved": "Resolved",
+    "closed": "Closed"
+  },
+  "deliveryCoordinatesMismatchTitle": "Delivery coordinates mismatch",
+  "locationCoordinatesMismatch": "Location coordinates mismatch",
+  "deliveryAddressCorrectionRequest": "Delivery address correction request",
+  "coordinatesMismatchWarning": "Coordinates may not match {{village}}, {{cell}}, {{sector}}, {{district}}, {{province}}.",
+  "administrativeDivisions": {
+    "province": "Province",
+    "district": "District",
+    "sector": "Sector",
+    "cell": "Cell",
+    "village": "Village"
+  },
+  "requester": "Requester",
+  "issue": "Issue",
+  "message": "Message",
+  "details": "Details"
+}

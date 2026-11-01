@@ -1,0 +1,21 @@
+{
+  "title": "Settings",
+  "description": "Workspace preferences for this browser.",
+  "notifications": "Notifications",
+  "notificationsDescription": "Choose which alerts you want while using the workspace.",
+  "emailNotifications": "Email Notifications",
+  "emailNotificationsDescription": "Account and trade updates sent to your email.",
+  "dealAlerts": "Deal Alerts",
+  "dealAlertsDescription": "Get notified when a deal needs your action.",
+  "display": "Display",
+  "displayDescription": "Local preferences for this browser.",
+  "language": "Language",
+  "languages": {
+    "english": "English",
+    "french": "French",
+    "kinyarwanda": "Kinyarwanda"
+  },
+  "compactTables": "Compact Tables",
+  "compactTablesDescription": "Tighten spacing in deal and product tables.",
+  "saveSettings": "Save Settings"
+}

@@ -1,0 +1,32 @@
+{
+  "title": "Users",
+  "pageDescription": "Manage accounts, roles, and access across the marketplace.",
+  "sectionTitle": "All users",
+  "sectionDescription": "Search accounts and assign marketplace roles.",
+  "refresh": "Refresh",
+  "createUser": "Create User",
+  "search": "Search",
+  "searchPlaceholder": "Search by name, email, or phone",
+  "user": "User",
+  "status": "Status",
+  "roles": "Roles",
+  "assignUpdate": "Assign / update",
+  "selectRole": "Select Role",
+  "apply": "Apply",
+  "active": "Active",
+  "inactive": "Inactive",
+  "email": "Email",
+  "phone": "Phone",
+  "roleLabels": {
+    "ADMIN": "ADMIN",
+    "AGGREGATOR": "AGGREGATOR",
+    "ANALYTICS": "ANALYTICS",
+    "BUYER": "BUYER",
+    "CUSTOMER_SUPPORT": "CUSTOMER SUPPORT",
+    "FINANCE": "FINANCE",
+    "LOGISTICS": "LOGISTICS",
+    "OPERATIONS": "OPERATIONS",
+    "SUPER_ADMIN": "SUPER ADMIN",
+    "SUPPLIER": "SUPPLIER"
+  }
+}

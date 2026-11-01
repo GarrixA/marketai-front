@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon, btn } from "@/lib/ui";
 import {
   formatRwf,
@@ -38,6 +39,8 @@ export function deliveryPriceNote(deal: Deal) {
 }
 
 export function RequestTransportForm({ deal }: { deal: Deal }) {
+  const { t } = useTranslation("orders");
+  const { t: tc } = useTranslation("common");
   const [fee, setFee] = useState("");
   const [error, setError] = useState("");
   const [requestTransport, { isLoading }] = useRequestTransportMutation();
@@ -69,25 +72,25 @@ export function RequestTransportForm({ deal }: { deal: Deal }) {
         }
       }}
     >
-      <Field label="Delivery price (optional)">
+      <Field label={tc("deliveryPriceOptional")}>
         <input
           className={fieldClass}
           type="number"
           min={1}
           inputMode="numeric"
-          placeholder="Leave blank for the deliverer to set"
+          placeholder={tc("deliveryPricePlaceholder")}
           value={fee}
           onChange={(event) => setFee(event.target.value)}
           disabled={isLoading}
-          aria-label="Delivery price in RWF, optional"
+          aria-label={tc("deliveryPriceAria")}
         />
       </Field>
       <button type="submit" className={btn.sellCompact} disabled={isLoading}>
         {isLoading ? (
-          <ButtonLoader label="Requesting…" />
+          <ButtonLoader label={tc("requesting")} />
         ) : (
           <>
-            Request transport <Icon name="truck" size={16} />
+            {t("requestTransport")} <Icon name="truck" size={16} />
           </>
         )}
       </button>
@@ -97,8 +100,7 @@ export function RequestTransportForm({ deal }: { deal: Deal }) {
         </p>
       ) : (
         <p className="m-0 text-[0.6875rem] text-soko-muted sm:col-span-2">
-          Include a price, or leave it empty and the deliverer will propose one
-          for you to confirm.
+          {tc("deliveryPriceHelp")}
         </p>
       )}
     </form>
@@ -106,6 +108,7 @@ export function RequestTransportForm({ deal }: { deal: Deal }) {
 }
 
 export function ConfirmTransportButton({ deal }: { deal: Deal }) {
+  const { t } = useTranslation("logisticsDashboard");
   const [error, setError] = useState("");
   const [confirmTransport, { isLoading }] = useConfirmTransportMutation();
   const quote = deal.transportQuotes[0];
@@ -114,9 +117,12 @@ export function ConfirmTransportButton({ deal }: { deal: Deal }) {
   return (
     <div className="mt-3">
       <p className="m-0 text-[0.6875rem] text-soko-ink">
-        {quote?.logisticsName || deal.logisticsName || "Deliverer"} proposed{" "}
-        <b>{formatRwf(fee ?? 0)}</b>
-        {quote?.note ? ` · ${quote.note}` : ""}.
+        {t("proposedDeliveryPrice", {
+          transporter:
+            quote?.logisticsName || deal.logisticsName || "Deliverer",
+          amount: formatRwf(fee ?? 0),
+        })}
+        {quote?.note ? ` · ${quote.note}` : ""}
       </p>
       <button
         type="button"

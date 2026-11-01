@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import useTranslation from "next-translate/useTranslation";
 import { Icon, btn } from "@/lib/ui";
 
 type Props = {
@@ -14,19 +15,22 @@ type Props = {
 
 export function CoordinateMismatchDialog({
   open,
-  title = "Coordinates may not match village",
+  title,
   message,
   onFixAddress,
   onRequestHelp,
   onClose,
 }: Props) {
+  const { t } = useTranslation("support");
+  const { t: tc } = useTranslation("common");
+  const heading = title ?? t("deliveryCoordinatesMismatchTitle");
   return (
     <AnimatePresence>
       {open ? (
         <div className="fixed inset-0 z-125 grid place-items-center p-6">
           <motion.button
             type="button"
-            aria-label="Close dialog"
+            aria-label={tc("close")}
             className="absolute inset-0 border-0 bg-soko-navy/72 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -51,7 +55,7 @@ export function CoordinateMismatchDialog({
               type="button"
               className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full border border-soko-line bg-white"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={tc("close")}
             >
               <Icon name="close" size={16} />
             </button>
@@ -59,10 +63,10 @@ export function CoordinateMismatchDialog({
               <Icon name="star" size={22} />
             </span>
             <p className="mt-4 text-[0.625rem] font-extrabold tracking-[0.12em] text-soko-ink uppercase">
-              Please confirm
+              {tc("pleaseConfirm")}
             </p>
             <h3 className="mt-2 font-display text-[1.25rem] font-bold text-soko-ink">
-              {title}
+              {heading}
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-soko-muted">
               {message}
@@ -73,14 +77,14 @@ export function CoordinateMismatchDialog({
                 className={`${btn.outline} w-full justify-center`}
                 onClick={onFixAddress}
               >
-                Fix address
+                {tc("fixAddress")}
               </button>
               <button
                 type="button"
                 className={`${btn.primaryCompact} w-full justify-center`}
                 onClick={onRequestHelp}
               >
-                Request for help <Icon name="arrow" size={16} />
+                {tc("requestHelp")} <Icon name="arrow" size={16} />
               </button>
             </div>
           </motion.div>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import useTranslation from "next-translate/useTranslation";
 import { Icon, PublicNav, SearchBar, SiteFooter, btn } from "@/lib/ui";
 import { ClaimRoleModal } from "@/components/ClaimRoleModal";
 import { LoginModal } from "@/components/LoginModal";
@@ -42,6 +43,10 @@ function Marketplace({
   onLogin: () => void;
   onHome: () => void;
 }) {
+  const { t: tBrand } = useTranslation("brand");
+  const { t: tHero } = useTranslation("hero");
+  const { t: tPulse } = useTranslation("marketPulse");
+  const { t: tSuppliers } = useTranslation("suppliers");
   const { data: products = [], isLoading: productsLoading } =
     useListAvailableProductsQuery();
   const listings = useMemo(
@@ -108,16 +113,17 @@ function Marketplace({
                   className="h-px w-6.5 shrink-0 bg-soko-on-dark"
                   aria-hidden="true"
                 />
-                <span>Rwanda&apos;s trusted supply marketplace</span>
+                <span>{tBrand("tagline")}</span>
               </span>
               <h1 className="mt-5 mb-5 font-display text-[3.875rem] leading-[1.12] font-bold tracking-[-0.04em] max-md:text-[3rem] max-sm:text-[2.375rem]">
-                Reliable supply.
+                {tHero("titleLine1")}
                 <br />
-                <em className="text-soko-on-dark not-italic">Fairer trade.</em>
+                <em className="text-soko-on-dark not-italic">
+                  {tHero("titleLine2")}
+                </em>
               </h1>
               <p className="max-w-155 text-lg leading-relaxed text-soko-on-dark max-sm:text-[0.9375rem]">
-                Discover verified suppliers, compare prices, place orders, and
-                coordinate delivery—all in one trusted marketplace.
+                {tHero("description")}
               </p>
               <div className="mt-7.5 flex flex-wrap gap-6 text-xs text-soko-on-dark">
                 <span className="flex items-center gap-1.5">
@@ -125,33 +131,33 @@ function Marketplace({
                     name="check"
                     className="rounded-full bg-soko-green-2 p-0.5"
                   />
-                  Verified sellers
+                  {tHero("verifiedSellers")}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Icon
                     name="check"
                     className="rounded-full bg-soko-green-2 p-0.5"
                   />
-                  Protected payments
+                  {tHero("protectedPayments")}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Icon
                     name="check"
                     className="rounded-full bg-soko-green-2 p-0.5"
                   />
-                  Tracked delivery
+                  {tHero("trackedDelivery")}
                 </span>
               </div>
             </div>
             <div className="w-82.5 shrink-0 rounded-lg border border-soko-line bg-white p-5 text-soko-ink shadow-lg max-md:hidden">
               <div className="flex justify-between text-[0.625rem] font-extrabold tracking-[0.10625rem] text-soko-muted uppercase">
-                <span>MARKET PULSE</span>
-                <span className="text-[#F07500] normal-case">
+                <span>{tPulse("title")}</span>
+                <span className="text-[#F07500] uppercase">
                   <i
                     className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[#F07500]"
                     aria-hidden="true"
                   />
-                  LIVE
+                  {tPulse("live")}
                 </span>
               </div>
               <div className="border-b border-soko-line py-5 pb-4.5">
@@ -159,37 +165,37 @@ function Marketplace({
                   {totalTrays.toLocaleString("en-RW")}
                 </strong>
                 <span className="text-[0.8125rem] text-soko-muted">
-                  units available today
+                  {tPulse("unitsAvailableToday")}
                 </span>
               </div>
               <div className="grid grid-cols-2 py-4.25">
                 <div className="border-r border-soko-line">
                   <small className="block text-[0.5rem] tracking-wide text-soko-muted uppercase">
-                    LISTINGS
+                    {tPulse("listings")}
                   </small>
                   <b className="my-1 block text-sm text-soko-ink">
                     {listings.length}
                   </b>
                   <span className="block text-[0.625rem] text-[#F07500]">
-                    Available now
+                    {tPulse("availableNow")}
                   </span>
                 </div>
                 <div className="pl-4.25">
                   <small className="block text-[0.5rem] tracking-wide text-soko-muted uppercase">
-                    ACTIVE SELLERS
+                    {tPulse("activeSellers")}
                   </small>
                   <b className="my-1 block text-sm text-soko-ink">
-                    {sellerCount} verified
+                    {sellerCount} {tPulse("verified")}
                   </b>
                   <span className="block text-[0.625rem] text-soko-muted">
-                    Supplier + aggregator
+                    {tPulse("supplierAndAggregator")}
                   </span>
                 </div>
               </div>
               <div className="flex justify-between border-t border-soko-line pt-3.75 text-xs text-soko-ink">
                 <span className="flex gap-2">
                   <Icon name="truck" size={17} />
-                  31 deliveries in transit
+                  {tPulse("deliveriesInTransit", { count: 31 })}
                 </span>
                 <Icon name="chevron" size={16} />
               </div>
@@ -214,16 +220,16 @@ function Marketplace({
           >
             <div className="mb-7.5 flex items-end justify-between gap-4 max-sm:flex-col max-sm:items-start">
               <div>
-                <span className={sectionKicker}>AVAILABLE NOW</span>
+                <span className={sectionKicker}>
+                  {tSuppliers("sectionEyebrow")}
+                </span>
                 <h2 className="my-2 font-display text-4xl leading-tight font-bold tracking-[-0.09375rem] text-soko-ink">
-                  {searching
-                    ? "Matching sellers"
-                    : "Fresh from verified suppliers"}
+                  {searching ? "Matching sellers" : tSuppliers("sectionTitle")}
                 </h2>
                 <p className="m-0 text-soko-muted">
                   {searching
                     ? `${filteredSellers.length} seller${filteredSellers.length === 1 ? "" : "s"} with stock that matches.`
-                    : "Open a supplier or aggregator to see every listing they have."}
+                    : tSuppliers("sectionDescription")}
                 </p>
               </div>
               {searching && (
@@ -270,8 +276,10 @@ function Marketplace({
                 <div className="mt-8 flex flex-col items-center gap-3 border border-soko-line bg-white px-5 py-5 text-[0.6875rem] text-soko-muted">
                   <span className="flex items-center gap-1.5">
                     <Icon name="check" />
-                    Showing {visibleSellers.length} of {filteredSellers.length}{" "}
-                    verified sellers
+                    {tSuppliers("showingSellers", {
+                      shown: visibleSellers.length,
+                      total: filteredSellers.length,
+                    })}
                   </span>
                   {hasMore && (
                     <button
@@ -283,7 +291,7 @@ function Marketplace({
                         )
                       }
                     >
-                      Load more <Icon name="arrow" size={16} />
+                      {tSuppliers("loadMore")} <Icon name="arrow" size={16} />
                     </button>
                   )}
                 </div>

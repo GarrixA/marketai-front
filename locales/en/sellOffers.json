@@ -1,0 +1,15 @@
+{
+  "title": "Sell offers",
+  "description": "New listings from suppliers and aggregators — review and buy.",
+  "listForSale": "List For Sale",
+  "confirmedSellOffers": "Confirmed Sell Offers",
+  "confirmedSellOffersDescription": "Only stock confirmed by the seller via Sell → Confirm sell order.",
+  "filters": {
+    "all": "All",
+    "suppliers": "Suppliers",
+    "aggregators": "Aggregators"
+  },
+  "emptyState": "No confirmed sell offers yet. When a seller confirms stock for sale, it appears here.",
+  "sell": "Sell",
+  "confirmSellOrder": "Confirm Sell Order"
+}

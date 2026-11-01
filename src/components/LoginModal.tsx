@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { ButtonLoader } from "@/components/ActionLoader";
@@ -25,6 +26,7 @@ export function LoginModal({
   onNeedRole,
   onNeedVerifyEmail,
 }: LoginModalProps) {
+  const { t } = useTranslation("auth");
   const { showError, dialog } = useAppDialog();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,8 +50,8 @@ export function LoginModal({
       const incomplete = getIncompleteRegistration(err);
       if (incomplete?.missingAction === "SELECT_ROLE" && incomplete.userId) {
         await showError(incomplete.message, {
-          title: "Finish account setup",
-          confirmLabel: "Select role",
+          title: t("login.finishSetupTitle"),
+          confirmLabel: t("login.selectRole"),
         });
         onNeedRole({
           userId: incomplete.userId,
@@ -60,15 +62,15 @@ export function LoginModal({
       }
       if (incomplete?.missingAction === "VERIFY_EMAIL") {
         await showError(incomplete.message, {
-          title: "Verify your email",
-          confirmLabel: "OK",
+          title: t("login.verifyEmailTitle"),
+          confirmLabel: t("common.ok"),
         });
         onNeedVerifyEmail(incomplete.email ?? normalizedEmail);
         setLoading(false);
         return;
       }
 
-      await showError(formatApiError(err), { title: "Sign in failed" });
+      await showError(formatApiError(err), { title: t("login.signInFailed") });
       setLoading(false);
     }
   };
@@ -83,7 +85,7 @@ export function LoginModal({
             className="absolute top-4 right-4 z-2 grid h-9 w-9 place-items-center rounded-full border border-soko-line bg-white disabled:opacity-50"
             onClick={onClose}
             disabled={loading}
-            aria-label="Close login"
+            aria-label={t("login.close")}
           >
             <Icon name="close" />
           </button>
@@ -93,25 +95,24 @@ export function LoginModal({
           </div>
 
           <span className="text-[0.6875rem] font-extrabold tracking-[0.1375rem] text-soko-green-2 uppercase">
-            Welcome back
+            {t("login.eyebrow")}
           </span>
           <h2 className="my-2 font-display text-[1.875rem] font-bold">
-            Log in to Soko.
+            {t("login.title")}
           </h2>
           <p className="mt-0 text-xs text-soko-muted">
-            Sign in with your MarketAI account. Admin seed: admin@soko.com /
-            Admin@123
+            {t("login.description")}
           </p>
 
           <form className="mt-6" onSubmit={(e) => void submit(e)}>
             <label className="mb-3.5 block text-[0.625rem] font-bold">
-              Email address
+              {t("common.email")}
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1.5 block w-full rounded-1.25 border border-soko-line p-2.75 text-xs outline-soko-navy disabled:opacity-60"
-                placeholder="name@company.rw"
+                placeholder={t("common.emailPlaceholder")}
                 autoComplete="email"
                 required
                 disabled={loading}
@@ -119,14 +120,14 @@ export function LoginModal({
             </label>
 
             <label className="mb-3.5 block text-[0.625rem] font-bold">
-              Password
+              {t("common.password")}
               <span className="relative mt-1.5 block">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full rounded-1.25 border border-soko-line p-2.75 pr-10 text-xs outline-soko-navy disabled:opacity-60"
-                  placeholder="Enter your password"
+                  placeholder={t("login.passwordPlaceholder")}
                   autoComplete="current-password"
                   required
                   minLength={8}
@@ -136,7 +137,11 @@ export function LoginModal({
                   type="button"
                   className="absolute top-1/2 right-2.5 grid -translate-y-1/2 place-items-center border-0 bg-transparent p-0.5 text-soko-muted hover:text-soko-navy"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword
+                      ? t("common.hidePassword")
+                      : t("common.showPassword")
+                  }
                   disabled={loading}
                 >
                   <Icon name={showPassword ? "eyeOff" : "eye"} size={16} />
@@ -151,24 +156,24 @@ export function LoginModal({
               aria-busy={loading}
             >
               {loading ? (
-                <ButtonLoader label="Signing in…" />
+                <ButtonLoader label={t("login.submitting")} />
               ) : (
                 <>
-                  Sign in <Icon name="arrow" />
+                  {t("login.submit")} <Icon name="arrow" />
                 </>
               )}
             </button>
           </form>
 
           <p className="mt-5 mb-0 text-center text-xs text-soko-muted">
-            New to Soko?{" "}
+            {t("login.newToSoko")}{" "}
             <button
               type="button"
               className="border-0 bg-transparent p-0 font-bold text-soko-navy underline-offset-2 hover:underline disabled:opacity-50"
               onClick={onSwitchToRegister}
               disabled={loading}
             >
-              Create an account
+              {t("login.createAccount")}
             </button>
           </p>
         </div>

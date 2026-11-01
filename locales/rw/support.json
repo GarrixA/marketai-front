@@ -1,0 +1,29 @@
+{
+  "title": "Ubufasha",
+  "description": "Suzuma ubusabe bw’ubufasha bwatanzwe n’abaguzi n’abacuruzi.",
+  "browseProducts": "Reba ibicuruzwa",
+  "ticketsTitle": "Ubusabe bw’ubufasha",
+  "ticketsDescription": "Ubusabe bwatanzwe n’abaguzi n’abacuruzi.",
+  "ticketNumber": "Nomero y’ubusabe",
+  "status": {
+    "open": "Buracyategereje gukemurwa",
+    "inProgress": "Burimo gukurikiranwa",
+    "resolved": "Bwakemuwe",
+    "closed": "Bwarafunzwe"
+  },
+  "deliveryCoordinatesMismatchTitle": "Aho ibicuruzwa bigomba kugezwa hagaragazwa n’ibipimo bya GPS ntihahuye n’umudugudu watoranyijwe",
+  "locationCoordinatesMismatch": "Aho hatoranyijwe ntihahuye n’ibipimo bya GPS",
+  "deliveryAddressCorrectionRequest": "Ibipimo bya GPS by’aho ndi ntibihuye n’umudugudu nahisemo. Ndabasaba kumfasha gukosora aderesi y’aho ibicuruzwa bizangezwa.",
+  "coordinatesMismatchWarning": "Ibipimo bya GPS bigaragaza ko aho hantu hashobora kuba ari {{village}}, {{cell}}, {{sector}}, {{district}}, {{province}}, ariko ntibihuye n’umurenge, akagari n’umudugudu wahisemo.",
+  "administrativeDivisions": {
+    "province": "Intara",
+    "district": "Akarere",
+    "sector": "Umurenge",
+    "cell": "Akagari",
+    "village": "Umudugudu"
+  },
+  "requester": "Uwatanze ubusabe",
+  "issue": "Ikibazo",
+  "message": "Ubutumwa",
+  "details": "Ibisobanuro birambuye"
+}

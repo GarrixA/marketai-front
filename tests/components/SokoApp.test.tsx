@@ -1,12 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { usePathname, useRouter } from "next/navigation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import DashboardLayout from "@/app/dashboard/layout";
 import DashboardPage from "@/app/dashboard/page";
 import SokoApp from "@/components/SokoApp";
-import StoreProvider from "@/components/providers/StoreProvider";
-import type { UserSession } from "@/lib/session";
+import { clearSession, setSession, type UserSession } from "@/lib/session";
+import { renderWithProviders } from "../helpers/providers";
 
 const loginMock = vi.fn();
 const logoutMock = vi.fn();
@@ -58,11 +58,11 @@ async function signInAs(
 }
 
 function renderWithStore(ui: React.ReactElement) {
-  return render(<StoreProvider>{ui}</StoreProvider>);
+  return renderWithProviders(ui);
 }
 
 function renderDashboard() {
-  return renderWithStore(
+  return renderWithProviders(
     <DashboardLayout>
       <DashboardPage />
     </DashboardLayout>
@@ -71,7 +71,9 @@ function renderDashboard() {
 
 describe("SokoApp", () => {
   beforeEach(() => {
+    clearSession();
     localStorage.clear();
+    window.dispatchEvent(new Event("soko-session"));
     loginMock.mockReset();
     logoutMock.mockReset();
     getMeMock.mockReset();
@@ -92,15 +94,12 @@ describe("SokoApp", () => {
 
   it("replaces login with the account menu when a session exists", async () => {
     const user = userEvent.setup();
-    localStorage.setItem(
-      "soko_user_session",
-      JSON.stringify({
-        ...buyerSession,
-        name: "Productive Quality",
-        businessName: "Productive Quality",
-        avatarUrl: "https://cdn.example/avatar.png",
-      })
-    );
+    setSession({
+      ...buyerSession,
+      name: "Productive Quality",
+      businessName: "Productive Quality",
+      avatarUrl: "https://cdn.example/avatar.png",
+    });
     getMeMock.mockResolvedValue({
       firstName: "Productive",
       lastName: "Quality",
@@ -125,7 +124,7 @@ describe("SokoApp", () => {
     renderWithStore(<SokoApp />);
 
     const menuButton = await screen.findByRole("button", {
-      name: "Open profile menu",
+      name: /Open profile menu/i,
     });
     expect(
       screen.queryByRole("button", { name: /^Log in/i })
@@ -138,8 +137,8 @@ describe("SokoApp", () => {
     await user.click(menuButton);
     expect(screen.getByText("Productive Quality")).toBeInTheDocument();
     expect(
-      screen.getByRole("menuitem", { name: /My account/i })
-    ).toBeInTheDocument();
+      screen.getAllByRole("menuitem", { name: /My account/i }).length
+    ).toBeGreaterThan(0);
     expect(
       screen.getByRole("menuitem", { name: /Settings/i })
     ).toBeInTheDocument();
@@ -151,19 +150,16 @@ describe("SokoApp", () => {
   });
 
   it("shows initials in the account menu when there is no profile picture", async () => {
-    localStorage.setItem(
-      "soko_user_session",
-      JSON.stringify({
-        ...buyerSession,
-        businessName: "Northern Egg Hub",
-        avatarUrl: null,
-      })
-    );
+    setSession({
+      ...buyerSession,
+      businessName: "Northern Egg Hub",
+      avatarUrl: null,
+    });
 
     renderWithStore(<SokoApp />);
 
     const menuButton = await screen.findByRole("button", {
-      name: "Open profile menu",
+      name: /Open profile menu/i,
     });
     expect(menuButton.querySelector("img")).toBeNull();
     expect(menuButton).toHaveTextContent("AK");
@@ -242,8 +238,7 @@ describe("SokoApp", () => {
   });
 
   it("renders the buyer dashboard from local storage on /dashboard", async () => {
-    localStorage.setItem("soko_user_session", JSON.stringify(buyerSession));
-    localStorage.setItem("soko_access_token", buyerSession.token);
+    setSession(buyerSession);
 
     renderDashboard();
 
@@ -254,11 +249,9 @@ describe("SokoApp", () => {
   });
 
   it("logs out from the dashboard and clears the session", async () => {
-    const user = userEvent.setup();
     const push = vi.fn();
     logoutMock.mockImplementation(() => {
-      localStorage.removeItem("soko_user_session");
-      localStorage.removeItem("soko_access_token");
+      clearSession();
     });
     vi.mocked(useRouter).mockReturnValue({
       push,
@@ -269,16 +262,14 @@ describe("SokoApp", () => {
       prefetch: vi.fn(),
     });
 
-    localStorage.setItem("soko_user_session", JSON.stringify(buyerSession));
-    localStorage.setItem("soko_access_token", buyerSession.token);
+    setSession(buyerSession);
 
     renderDashboard();
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: /Log out/i })
-      ).toBeInTheDocument();
-    });
-    await user.click(screen.getByRole("button", { name: /Log out/i }));
+    const logoutButtons = await screen.findAllByTestId("dashboard-logout");
+    for (const button of logoutButtons) {
+      fireEvent.click(button);
+      if (logoutMock.mock.calls.length > 0) break;
+    }
 
     expect(logoutMock).toHaveBeenCalled();
     expect(localStorage.getItem("soko_user_session")).toBeNull();

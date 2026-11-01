@@ -1,0 +1,27 @@
+{
+  "title": "Shyira igicuruzwa ku isoko",
+  "description": "Garagaza niba igicuruzwa gihari n’aho abaguzi bashobora kugisanga.",
+  "grade": "Icyiciro cy’ubuziranenge",
+  "grades": {
+    "large": "Kinini",
+    "medium": "Kiringaniye",
+    "small": "Gito",
+    "mixed": "Bivanze",
+    "organicLarge": "Amagi manini y’inkoko zorowe mu buryo bw’umwimerere",
+    "freeRange": "Amagi y’inkoko zororerwa zidegembya"
+  },
+  "priceRwf": "Igiciro (RWF)",
+  "unit": "Igipimo cyo kugurishaho",
+  "units": {
+    "tray": "Ikireti cy’amagi",
+    "piece": "Igice kimwe"
+  },
+  "availableQuantity": "Ingano y’ibicuruzwa bihari",
+  "minimumQuantity": "Ingano ntoya yemerewe kugurwa",
+  "descriptionLabel": "Ibisobanuro by’igicuruzwa",
+  "markAsAvailable": "Garagaza ko igicuruzwa gihari",
+  "useProfileDeliveryLocation": "Koresha aderesi iri ku mwirondoro wanjye / aho ibicuruzwa bigezwa",
+  "locationExample": "Buhuye, Cyabararika, Muhoza, Musanze, AMAJYARUGURU",
+  "submit": "Shyira ku isoko",
+  "listForSale": "Shyira ku isoko"
+}

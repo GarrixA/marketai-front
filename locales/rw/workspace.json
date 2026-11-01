@@ -1,0 +1,24 @@
+{
+  "title": "Ahakorerwa imirimo ya Soko",
+  "overview": "Incamake",
+  "workspace": "Ahakorerwa imirimo",
+  "verifiedAccount": "Konti yemejwe",
+  "roles": {
+    "buyer": "Umuguzi",
+    "supplier": "Utanga ibicuruzwa",
+    "aggregator": "Ukusanya umusaruro",
+    "logistics": "Ubwikorezi",
+    "admin": "Imikorere"
+  },
+  "platformAdmin": "Umuyobozi wa sisitemu",
+  "platformAdminInitials": "PA",
+  "greeting": "Mwaramutse, Muyobozi wa sisitemu.",
+  "activityDescription": "Amakuru agezweho ku bicuruzwa biri ku isoko n’ibikorwa by’ubucuruzi.",
+  "browseProducts": "Reba ibicuruzwa",
+  "dateFormat": "EEEE d MMMM",
+  "publicMarketplace": "Isoko rigenewe bose",
+  "logout": "Sohoka muri konti",
+  "goodMorningNamed": "Mwaramutse, {{name}}.",
+  "buySellDescription": "Gurira kandi ugurishe ahantu hamwe — isoko, ubwishyu n’ubwikorezi.",
+  "listForSale": "Shyira ibicuruzwa ku isoko"
+}

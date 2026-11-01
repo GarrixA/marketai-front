@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import useTranslation from "next-translate/useTranslation";
 import { ActionButton, ActionToggle, Icon, btn } from "@/lib/ui";
 import { EmptyState, Field, fieldClass } from "@/components/marketplace/uiBits";
 import { ProductFormModal } from "@/components/marketplace/ProductFormModal";
@@ -63,6 +64,8 @@ function SellProductCard({
   onSell: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation("market");
+  const { t: tProducts } = useTranslation("products");
   const locationLabel = formatRwandaLocation(product.location);
 
   return (
@@ -91,7 +94,9 @@ function SellProductCard({
                 : "bg-soko-slate text-soko-muted"
             }`}
           >
-            {product.isAvailable ? "Available" : "Unavailable"}
+            {product.isAvailable
+              ? tProducts("available")
+              : tProducts("unavailable")}
           </span>
         </div>
 
@@ -102,9 +107,11 @@ function SellProductCard({
           </span>
         </p>
         <p className="m-0 mb-1 text-[0.625rem] text-soko-ink sm:text-[0.6875rem]">
-          Available{" "}
           <b className="text-soko-ink">
-            {product.availableQuantity} {product.unit}
+            {t("listingAvailable", {
+              quantity: product.availableQuantity,
+              unit: product.unit,
+            })}
           </b>
         </p>
         <p className="m-0 mb-3 line-clamp-2 flex items-start gap-1 text-[0.5625rem] text-soko-muted sm:text-[0.625rem]">
@@ -117,14 +124,14 @@ function SellProductCard({
 
         <div className="mt-auto flex flex-wrap items-center gap-1.5 sm:gap-2">
           <ActionButton variant="remove" size="sm" onClick={onDelete}>
-            Remove
+            {t("remove")}
           </ActionButton>
           <ActionButton variant="edit" size="sm" onClick={onEdit}>
-            Edit
+            {t("edit")}
           </ActionButton>
           {product.isAvailable ? (
             <ActionButton variant="sell" size="sm" onClick={onSell}>
-              Sell
+              {t("sell")}
             </ActionButton>
           ) : null}
         </div>
@@ -208,6 +215,8 @@ export function BuyQtyModal({
   showSuccess: ReturnType<typeof useAppDialog>["showSuccess"];
 }) {
   const router = useRouter();
+  const { t: tBuy } = useTranslation("buyRequests");
+  const { t: tMarket } = useTranslation("market");
   const sellsAsLot = product.sellMode === "LOT";
   const minQty = sellsAsLot
     ? Math.max(1, product.availableQuantity)
@@ -345,7 +354,7 @@ export function BuyQtyModal({
           <Icon name="close" size={16} />
         </button>
         <h3 className="m-0 pr-8 font-display text-[1.125rem] font-bold">
-          Buy from {ownerName}
+          {tMarket("buyFrom", { name: ownerName })}
         </h3>
         <p className="mt-1 mb-4 text-[0.625rem] text-soko-muted">
           {product.description?.trim() || product.name}
@@ -524,7 +533,7 @@ export function BuyQtyModal({
               <ButtonLoader label="Sending…" />
             ) : (
               <>
-                Send buy request <Icon name="arrow" />
+                {tBuy("sendRequest")} <Icon name="arrow" />
               </>
             )}
           </button>
@@ -567,6 +576,8 @@ export function BuyQtyModal({
 }
 
 export function ProductMarketPanel({ role }: { role: DashboardRole }) {
+  const { t } = useTranslation("market");
+  const { t: tCommon } = useTranslation("common");
   const session = getSession();
   const { dialog, showError, showSuccess, confirm } = useAppDialog();
   const canManage = role === "supplier" || role === "aggregator";
@@ -689,9 +700,10 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
 
   const handleDelete = async (product: MarketplaceProduct) => {
     const ok = await confirm({
-      title: "Remove product",
-      message: `Remove “${product.name}” from your sell listings?`,
-      confirmLabel: "Remove",
+      title: t("removeProduct"),
+      message: t("removeProductMessage", { name: product.name }),
+      confirmLabel: t("remove"),
+      cancelLabel: t("cancel"),
       destructive: true,
     });
     if (!ok) return;
@@ -726,13 +738,13 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
             options={[
               {
                 value: "buy",
-                label: "Buy",
+                label: t("buyTab"),
                 icon: "cart",
                 activeVariant: "buy",
               },
               {
                 value: "sell",
-                label: "Sell",
+                label: t("sellTab"),
                 icon: "tag",
                 activeVariant: "sell",
               },
@@ -747,7 +759,7 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
             className="pointer-events-none"
             tabIndex={-1}
           >
-            {role === "supplier" ? "Your sell listings" : "Buy from market"}
+            {role === "supplier" ? t("yourSellListings") : t("buyFromMarket")}
           </ActionButton>
         )}
 
@@ -831,7 +843,7 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
             setTradeResult({
               kind: "sell",
               title: confirmedSell
-                ? "Sell confirmed"
+                ? t("sellConfirmed")
                 : isUpdate
                   ? "Product updated"
                   : "Listed for sale",
@@ -864,10 +876,9 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
             const product = buying;
             const ownerId = product.ownerId ?? product.owner?.id;
             if (!ownerId) {
-              await showError(
-                "This listing has no seller account attached. Try another product.",
-                { title: "Could not send buy request" }
-              );
+              await showError(tCommon("listingNoSeller"), {
+                title: tCommon("couldNotSendBuyRequest"),
+              });
               return;
             }
 
@@ -883,9 +894,8 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
               : deal.productName;
             setTradeResult({
               kind: "buy",
-              title: "Buy request sent",
-              message:
-                "The seller was notified on Deals. They will confirm available quantity before payment.",
+              title: t("buyRequestSent"),
+              message: t("buyRequestSentMessage"),
               details: [
                 productLabel,
                 `${deal.quantity} ${deal.unit.toLowerCase()} · ${formatRwf(deal.targetPrice)} / ${deal.unit.toLowerCase()}`,

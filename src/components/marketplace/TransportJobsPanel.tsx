@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { formatRwf } from "@/lib/marketplaceStore";
 import { mapApiDealToLocal } from "@/lib/mapApiDeal";
 import {
@@ -26,6 +27,7 @@ import type { Deal } from "@/lib/marketplaceTypes";
 const OPEN = new Set<Deal["status"]>(["transport_open", "transport_quoted"]);
 
 export function TransportJobsPanel() {
+  const { t } = useTranslation("logisticsDashboard");
   const session = getSession();
   const {
     data: apiDeals = [],
@@ -56,15 +58,15 @@ export function TransportJobsPanel() {
   return (
     <div className="grid grid-cols-1 gap-4.25">
       <Panel
-        title="Transport notices"
-        subtitle="Paid deliveries. Accept a price the owner set, or propose one for them to confirm."
+        title={t("transportNotices")}
+        subtitle={t("transportNoticesDescription")}
       >
         {isLoading && openJobs.length === 0 ? (
           <EmptyState message="Loading transport requests…" />
         ) : isError && openJobs.length === 0 ? (
           <EmptyState message="Transport requests could not be loaded. Refresh the page to try again." />
         ) : openJobs.length === 0 ? (
-          <EmptyState message="No open transport requests right now." />
+          <EmptyState message={t("noOpenTransportRequests")} />
         ) : (
           <div className="flex flex-col gap-3">
             {openJobs.map((deal) => (
@@ -74,10 +76,7 @@ export function TransportJobsPanel() {
         )}
       </Panel>
 
-      <Panel
-        title="My deliveries"
-        subtitle="Packaging, transit, and delivery confirmation for jobs you accepted."
-      >
+      <Panel title={t("myDeliveries")} subtitle={t("myDeliveriesDescription")}>
         {mine.length === 0 ? (
           <EmptyState message="You have not taken a delivery yet." />
         ) : (
@@ -114,19 +113,23 @@ export function TransportJobsPanel() {
 }
 
 function RouteLine({ deal }: { deal: Deal }) {
+  const { t } = useTranslation("logisticsDashboard");
   return (
     <small className="mt-1 block text-[0.6875rem] leading-snug text-soko-muted">
       <span className="block">
-        Pickup: {deal.pickupLocation?.trim() || "Business address not set"}
+        {t("pickup")}:{" "}
+        {deal.pickupLocation?.trim() || "Business address not set"}
       </span>
       <span className="block">
-        Delivery: {deal.deliveryLocation?.trim() || "Delivery address not set"}
+        {t("delivery")}:{" "}
+        {deal.deliveryLocation?.trim() || "Delivery address not set"}
       </span>
     </small>
   );
 }
 
 function TransportJobCard({ deal }: { deal: Deal }) {
+  const { t } = useTranslation("logisticsDashboard");
   const note = deliveryPriceNote(deal);
   return (
     <article className="rounded-1.25 border border-soko-line px-3.5 py-3.5">
@@ -141,7 +144,7 @@ function TransportJobCard({ deal }: { deal: Deal }) {
         <StatusBadge status={deal.status} />
       </div>
       <p className="m-0 mb-3 text-[0.625rem] text-soko-muted">
-        Owner: {deal.supplierName ?? "Seller"} · Buyer:{" "}
+        {t("owner")}: {deal.supplierName ?? "Seller"} · {t("buyer")}:{" "}
         {deal.buyerBusiness || deal.buyerName}
       </p>
       {note ? (

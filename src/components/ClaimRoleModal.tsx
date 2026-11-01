@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { ButtonLoader } from "@/components/ActionLoader";
@@ -10,27 +11,7 @@ import { formatApiError } from "@/lib/apiError";
 import { authService } from "@/services/auth.service";
 import type { ClaimableRole } from "@/types/auth";
 
-const ROLE_OPTIONS: {
-  role: ClaimableRole;
-  title: string;
-  description: string;
-}[] = [
-  {
-    role: "BUYER",
-    title: "Buyer",
-    description: "Source eggs and manage purchase deals.",
-  },
-  {
-    role: "SUPPLIER",
-    title: "Supplier",
-    description: "List stock and fulfill sell offers.",
-  },
-  {
-    role: "AGGREGATOR",
-    title: "Aggregator",
-    description: "Buy and sell from one workspace.",
-  },
-];
+const ROLE_OPTIONS: ClaimableRole[] = ["BUYER", "SUPPLIER", "AGGREGATOR"];
 
 type ClaimRoleModalProps = {
   userId: string;
@@ -45,6 +26,7 @@ export function ClaimRoleModal({
   onClose,
   onSuccess,
 }: ClaimRoleModalProps) {
+  const { t } = useTranslation("auth");
   const { showError, showSuccess, dialog } = useAppDialog();
   const [role, setRole] = useState<ClaimableRole | "">("");
   const [loading, setLoading] = useState(false);
@@ -57,12 +39,20 @@ export function ClaimRoleModal({
     try {
       const result = await authService.claimRole({ userId, role });
       await showSuccess(
-        `${result.message} You can now sign in as ${role.toLowerCase()}.`,
-        { title: "Role selected", confirmLabel: "Continue to sign in" }
+        t("claimRole.successMessage", {
+          message: result.message,
+          role: t(`claimRole.roles.${role}.title`).toLowerCase(),
+        }),
+        {
+          title: t("claimRole.successTitle"),
+          confirmLabel: t("claimRole.continueToSignIn"),
+        }
       );
       onSuccess();
     } catch (err) {
-      await showError(formatApiError(err), { title: "Could not select role" });
+      await showError(formatApiError(err), {
+        title: t("claimRole.failedTitle"),
+      });
     } finally {
       setLoading(false);
     }
@@ -78,7 +68,7 @@ export function ClaimRoleModal({
             className="absolute top-4 right-4 z-2 grid h-9 w-9 place-items-center rounded-full border border-soko-line bg-white disabled:opacity-50"
             onClick={onClose}
             disabled={loading}
-            aria-label="Close role selection"
+            aria-label={t("claimRole.close")}
           >
             <Icon name="close" />
           </button>
@@ -88,22 +78,21 @@ export function ClaimRoleModal({
           </div>
 
           <span className="text-[0.6875rem] font-extrabold tracking-[0.1375rem] text-soko-green-2 uppercase">
-            Step 3 of 3
+            {t("claimRole.eyebrow")}
           </span>
           <h2 className="my-2 font-display text-[1.875rem] font-bold">
-            Choose your role
+            {t("claimRole.title")}
           </h2>
           <p className="mt-0 text-xs text-soko-muted">
-            Finish setup for <strong className="text-soko-ink">{email}</strong>.
-            Pick how you will use Soko.
+            {t("claimRole.description", { email })}
           </p>
 
           <form className="mt-6 space-y-2.5" onSubmit={(e) => void submit(e)}>
             {ROLE_OPTIONS.map((option) => {
-              const selected = role === option.role;
+              const selected = role === option;
               return (
                 <label
-                  key={option.role}
+                  key={option}
                   className={`flex cursor-pointer gap-3 rounded-1.25 border p-3.5 ${
                     selected
                       ? "border-soko-navy bg-soko-slate"
@@ -113,19 +102,19 @@ export function ClaimRoleModal({
                   <input
                     type="radio"
                     name="role"
-                    value={option.role}
+                    value={option}
                     checked={selected}
-                    onChange={() => setRole(option.role)}
+                    onChange={() => setRole(option)}
                     className="mt-1"
                     disabled={loading}
                     required
                   />
                   <span>
                     <strong className="block text-[0.75rem]">
-                      {option.title}
+                      {t(`claimRole.roles.${option}.title`)}
                     </strong>
                     <span className="block text-[0.625rem] text-soko-muted">
-                      {option.description}
+                      {t(`claimRole.roles.${option}.description`)}
                     </span>
                   </span>
                 </label>
@@ -139,10 +128,10 @@ export function ClaimRoleModal({
               aria-busy={loading}
             >
               {loading ? (
-                <ButtonLoader label="Saving…" />
+                <ButtonLoader label={t("claimRole.submitting")} />
               ) : (
                 <>
-                  Continue <Icon name="arrow" />
+                  {t("claimRole.submit")} <Icon name="arrow" />
                 </>
               )}
             </button>

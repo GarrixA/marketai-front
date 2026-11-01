@@ -1,0 +1,32 @@
+{
+  "title": "Abakoresha",
+  "pageDescription": "Fungura konti z’abakoresha kandi ubagene inshingano muri sisitemu.",
+  "sectionTitle": "Abakoresha",
+  "sectionDescription": "Gucunga konti z’abakoresha no kubagenera inshingano ku isoko.",
+  "refresh": "Vugurura amakuru",
+  "createUser": "Fungura konti y’umukoresha",
+  "search": "Shakisha",
+  "searchPlaceholder": "Shakisha umukoresha...",
+  "user": "Umukoresha",
+  "status": "Imiterere ya konti",
+  "roles": "Inshingano",
+  "assignUpdate": "Gena cyangwa hindura inshingano",
+  "selectRole": "Hitamo inshingano",
+  "apply": "Emeza impinduka",
+  "active": "Konti ikora",
+  "inactive": "Konti idakora",
+  "email": "Imeyili",
+  "phone": "Nomero ya telefone",
+  "roleLabels": {
+    "ADMIN": "Umuyobozi wa sisitemu",
+    "AGGREGATOR": "Ukusanya umusaruro",
+    "ANALYTICS": "Ushinzwe isesengura ry’amakuru",
+    "BUYER": "Umuguzi",
+    "CUSTOMER_SUPPORT": "Ushinzwe gufasha abakiriya",
+    "FINANCE": "Ushinzwe imari",
+    "LOGISTICS": "Ushinzwe ubwikorezi n’ikwirakwizwa ry’ibicuruzwa",
+    "OPERATIONS": "Ushinzwe ibikorwa",
+    "SUPER_ADMIN": "Umuyobozi mukuru wa sisitemu",
+    "SUPPLIER": "Utanga ibicuruzwa"
+  }
+}

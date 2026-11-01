@@ -1,27 +1,18 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Logo } from "@/components/Logo";
 import { ProfileMenu } from "@/components/ProfileMenu";
-import { getSession, patchSession, type UserSession } from "@/lib/session";
+import {
+  getSession,
+  getSessionSnapshot,
+  patchSession,
+  subscribeSession,
+} from "@/lib/session";
 import { authService } from "@/services/auth.service";
-
-let sessionSnapshot: UserSession | null | undefined;
-
-function subscribeSession(onStoreChange: () => void) {
-  const sync = () => {
-    sessionSnapshot = getSession();
-    onStoreChange();
-  };
-  window.addEventListener("soko-session", sync);
-  return () => window.removeEventListener("soko-session", sync);
-}
-
-function getSessionSnapshot() {
-  if (sessionSnapshot === undefined) sessionSnapshot = getSession();
-  return sessionSnapshot;
-}
 
 type PublicNavProps = {
   onLogin: () => void;
@@ -29,6 +20,7 @@ type PublicNavProps = {
 };
 
 export function PublicNav({ onLogin, onHome }: PublicNavProps) {
+  const { t } = useTranslation("navigation");
   const session = useSyncExternalStore(
     subscribeSession,
     getSessionSnapshot,
@@ -74,21 +66,24 @@ export function PublicNav({ onLogin, onHome }: PublicNavProps) {
     <header className="sticky top-0 z-50 h-19 border-b border-soko-line bg-white">
       <div className="mx-auto flex h-full max-w-310 items-center justify-between px-6">
         <Logo onHome={onHome} />
-        {session ? (
-          <ProfileMenu
-            onLogout={logout}
-            displayName={accountLabel}
-            avatarUrl={session.avatarUrl}
-          />
-        ) : (
-          <button
-            type="button"
-            className="inline-flex items-center justify-center gap-3 rounded-md border-0 bg-[#F07500] px-4.25 py-2.75 text-sm font-bold text-white hover:bg-[#d86800]"
-            onClick={onLogin}
-          >
-            Log in <Icon name="arrow" size={16} />
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <LanguageSwitcher compact />
+          {session ? (
+            <ProfileMenu
+              onLogout={logout}
+              displayName={accountLabel}
+              avatarUrl={session.avatarUrl}
+            />
+          ) : (
+            <button
+              type="button"
+              className="inline-flex items-center justify-center gap-3 rounded-md border-0 bg-[#F07500] px-4.25 py-2.75 text-sm font-bold text-white hover:bg-[#d86800]"
+              onClick={onLogin}
+            >
+              {t("login")} <Icon name="arrow" size={16} />
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

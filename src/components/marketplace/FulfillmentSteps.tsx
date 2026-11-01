@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { ButtonLoader } from "@/components/ActionLoader";
 import { Icon, btn } from "@/lib/ui";
 import { formatApiError } from "@/lib/apiError";
@@ -14,10 +15,10 @@ import {
 import type { Deal, DealStatus } from "@/lib/marketplaceTypes";
 
 const STEPS = [
-  "Packaging",
-  "In transit",
-  "Buyer confirms",
-  "Paid out",
+  { id: "packaging", key: "packaging" },
+  { id: "inTransit", key: "inTransit" },
+  { id: "buyerConfirms", key: "buyerConfirms" },
+  { id: "paidOut", key: "paidOut" },
 ] as const;
 
 const FULFILLMENT: DealStatus[] = [
@@ -57,16 +58,17 @@ export function FulfillmentSteps({
   actor: "logistics" | "supplier" | "buyer";
   showTrack?: boolean;
 }) {
+  const { t } = useTranslation("deals");
   const current = stepIndex(deal.status);
   return (
     <div className="mt-3">
       {showTrack ? (
         <ol className="m-0 flex list-none gap-2 p-0">
-          {STEPS.map((label, index) => {
+          {STEPS.map((step, index) => {
             const done = index < current;
             const active = index === current;
             return (
-              <li key={label} className="min-w-0 flex-1">
+              <li key={step.id} className="min-w-0 flex-1">
                 <span
                   className={`block h-1.5 rounded-full ${
                     done || active ? "bg-soko-navy" : "bg-soko-line"
@@ -78,7 +80,7 @@ export function FulfillmentSteps({
                   }`}
                 >
                   {done ? <Icon name="check" size={12} /> : null}
-                  {label}
+                  {t(step.key)}
                 </span>
               </li>
             );
@@ -97,6 +99,8 @@ function FulfillmentAction({
   deal: Deal;
   actor: "logistics" | "supplier" | "buyer";
 }) {
+  const { t: tLogistics } = useTranslation("logisticsDashboard");
+  const { t: tOrders } = useTranslation("orders");
   const [error, setError] = useState("");
   const [requestPackaging, { isLoading: requestingPack }] =
     useRequestPackagingMutation();
@@ -172,7 +176,7 @@ function FulfillmentAction({
         {requestingDelivery ? (
           <ButtonLoader label="Sending…" />
         ) : (
-          "Ask buyer to confirm delivery"
+          tLogistics("askBuyerConfirmDelivery")
         )}
       </button>
     );
@@ -207,24 +211,31 @@ function FulfillmentAction({
     body = (
       <p className="m-0 mt-3 text-[0.6875rem] text-soko-ink">
         {actor === "logistics" ? (
-          <>
-            Delivered. Your fee{" "}
-            <b>{formatRwf(deal.deliveryPayout ?? deal.transportFee ?? 0)}</b> is
-            in Income.
-          </>
+          tLogistics("deliveredFeeInIncome", {
+            amount: formatRwf(deal.deliveryPayout ?? deal.transportFee ?? 0),
+          })
         ) : actor === "supplier" ? (
-          <>
-            Buyer confirmed delivery. You receive{" "}
-            <b>{formatRwf(deal.sellerPayout ?? 0)}</b> after a 5% platform fee
-            {deal.platformFee != null
-              ? ` (${formatRwf(deal.platformFee)})`
-              : ""}{" "}
-            and delivery
-            {deal.deliveryPayout != null
-              ? ` (${formatRwf(deal.deliveryPayout)})`
-              : ""}
-            .
-          </>
+          deal.platformFee != null && deal.deliveryPayout != null ? (
+            tOrders("sellerPayoutSummary", {
+              netAmount: formatRwf(deal.sellerPayout ?? 0),
+              platformFeePercent: 5,
+              platformFee: formatRwf(deal.platformFee),
+              deliveryFee: formatRwf(deal.deliveryPayout),
+            })
+          ) : (
+            <>
+              Buyer confirmed delivery. You receive{" "}
+              <b>{formatRwf(deal.sellerPayout ?? 0)}</b> after a 5% platform fee
+              {deal.platformFee != null
+                ? ` (${formatRwf(deal.platformFee)})`
+                : ""}{" "}
+              and delivery
+              {deal.deliveryPayout != null
+                ? ` (${formatRwf(deal.deliveryPayout)})`
+                : ""}
+              .
+            </>
+          )
         ) : (
           "You confirmed delivery. The held payment has been released."
         )}
