@@ -66,6 +66,22 @@ export function patchSession(
   return next;
 }
 
+let sessionSnapshot: UserSession | null | undefined;
+
+export function subscribeSession(onStoreChange: () => void) {
+  const sync = () => {
+    sessionSnapshot = getSession();
+    onStoreChange();
+  };
+  window.addEventListener("soko-session", sync);
+  return () => window.removeEventListener("soko-session", sync);
+}
+
+export function getSessionSnapshot(): UserSession | null {
+  if (sessionSnapshot === undefined) sessionSnapshot = getSession();
+  return sessionSnapshot;
+}
+
 export function getSession(): UserSession | null {
   if (typeof window === "undefined") return null;
   try {
@@ -90,6 +106,7 @@ export function setSession(session: UserSession): void {
   const profile = { ...session, token: undefined };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
   localStorage.removeItem(LEGACY_TOKEN_KEY);
+  sessionSnapshot = getSession();
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("soko-session"));
   }
@@ -99,6 +116,7 @@ export function clearSession(): void {
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(LEGACY_TOKEN_KEY);
   clearMarketplaceStorage();
+  sessionSnapshot = null;
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("soko-session"));
   }

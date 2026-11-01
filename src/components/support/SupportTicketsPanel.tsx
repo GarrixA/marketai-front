@@ -1,8 +1,16 @@
 "use client";
 
+import useTranslation from "next-translate/useTranslation";
 import { EmptyState, Panel } from "@/components/marketplace/uiBits";
 import { useListSupportTicketsQuery } from "@/store/actions/support";
 import { SUPPORT_CATEGORY_OPTIONS } from "@/types/support";
+
+const TICKET_STATUS_KEYS: Record<string, string> = {
+  OPEN: "status.open",
+  IN_PROGRESS: "status.inProgress",
+  RESOLVED: "status.resolved",
+  CLOSED: "status.closed",
+};
 
 function categoryLabel(value: string) {
   return (
@@ -12,13 +20,11 @@ function categoryLabel(value: string) {
 }
 
 export function SupportTicketsPanel() {
+  const { t } = useTranslation("support");
   const { data: tickets = [], isLoading } = useListSupportTicketsQuery();
 
   return (
-    <Panel
-      title="Support tickets"
-      subtitle="Requests submitted by buyers and sellers."
-    >
+    <Panel title={t("ticketsTitle")} subtitle={t("ticketsDescription")}>
       {isLoading ? (
         <p className="m-0 text-sm text-soko-muted">Loading tickets…</p>
       ) : tickets.length === 0 ? (
@@ -41,7 +47,9 @@ export function SupportTicketsPanel() {
                   </small>
                 </div>
                 <span className="shrink-0 rounded-full bg-soko-slate px-2 py-0.75 text-[0.5rem] font-bold tracking-wide text-soko-navy uppercase">
-                  {ticket.status.replaceAll("_", " ")}
+                  {TICKET_STATUS_KEYS[ticket.status]
+                    ? t(TICKET_STATUS_KEYS[ticket.status])
+                    : ticket.status.replaceAll("_", " ")}
                 </span>
               </div>
               <p className="m-0 text-[0.6875rem] text-soko-muted">

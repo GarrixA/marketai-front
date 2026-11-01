@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { btn } from "@/lib/ui";
 import {
   formatRwf,
@@ -47,6 +48,7 @@ export function DealsPanel({
 }: {
   perspective: "buyer" | "supplier";
 }) {
+  const { t } = useTranslation("deals");
   const { deals, inventory } = useMarketplace();
   const session = getSession();
   const email = session?.email ?? "";
@@ -108,12 +110,12 @@ export function DealsPanel({
   return (
     <Panel
       title={
-        perspective === "buyer" ? "Deals & payments" : "Deal confirmations"
+        perspective === "buyer" ? t("dealsAndPayments") : t("dealConfirmations")
       }
       subtitle={
         perspective === "buyer"
-          ? "Pay once the supplier confirms available quantity."
-          : "New buy requests appear here — confirm available quantity or reject, then manage transport."
+          ? t("payAfterSupplierConfirms")
+          : t("dealConfirmationsDescription")
       }
     >
       {loading && actionable.length === 0 ? (
@@ -121,7 +123,7 @@ export function DealsPanel({
       ) : failed && actionable.length === 0 ? (
         <EmptyState message="Deals could not be loaded. Refresh the page to try again." />
       ) : actionable.length === 0 ? (
-        <EmptyState message="No deals in this workspace yet." />
+        <EmptyState message={t("noWorkspaceDeals")} />
       ) : (
         <div className="flex flex-col gap-3">
           {actionable.map((deal) => {
@@ -177,7 +179,7 @@ export function DealsPanel({
                     </strong>
                     <small className="text-[0.5625rem] text-soko-muted">
                       {perspective === "buyer"
-                        ? (deal.supplierName ?? "Waiting for supplier")
+                        ? (deal.supplierName ?? t("awaitingSupplier"))
                         : deal.buyerBusiness}{" "}
                       · {deal.quantity} {deal.unit} → {deal.deliveryLocation}
                     </small>
@@ -190,7 +192,7 @@ export function DealsPanel({
                     <strong className="block">
                       {perspective === "buyer"
                         ? "Payment succeeded"
-                        : "Payment received"}
+                        : t("paymentReceived")}
                     </strong>
                     {formatRwf(deal.paidAmount ?? 0)} for {deal.confirmedQty}{" "}
                     {deal.unit}
@@ -212,20 +214,19 @@ export function DealsPanel({
                 {canPay ? (
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <span className="text-[0.6875rem]">
-                      Pay{" "}
-                      <b>
-                        {formatRwf(
+                      {t("paySupplier", {
+                        amount: formatRwf(
                           (deal.offerPrice ?? 0) * (deal.confirmedQty ?? 0)
-                        )}
-                      </b>{" "}
-                      to {deal.supplierName}
+                        ),
+                        supplier: deal.supplierName,
+                      })}
                     </span>
                     <button
                       type="button"
                       className={btn.buyCompact}
                       onClick={() => setPaying(deal)}
                     >
-                      Proceed to payment
+                      {t("proceedToPayment")}
                     </button>
                   </div>
                 ) : null}

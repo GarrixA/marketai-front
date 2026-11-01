@@ -2781,7 +2781,19 @@ natural-compare@^1.4.0:
   resolved "https://registry.npmjs.org/natural-compare/-/natural-compare-1.4.0.tgz"
   integrity sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==
 
-next@16.2.10:
+next-translate-plugin@^3.2.0:
+  version "3.2.0"
+  resolved "https://registry.npmjs.org/next-translate-plugin/-/next-translate-plugin-3.2.0.tgz"
+  integrity sha512-iMDNaUEMmSIJAXiWCbI+z8kGR2XWAWLmje42T/wnH9eAu063o0Z/lV/ml/fyiW9q/hPFZ9XtEcfqg4BdIeZd5Q==
+  dependencies:
+    typescript "5.9.3"
+
+next-translate@^3.2.0, "next-translate@>= 2.4.1":
+  version "3.2.0"
+  resolved "https://registry.npmjs.org/next-translate/-/next-translate-3.2.0.tgz"
+  integrity sha512-hxbsRT7J/D/Nn5rVWBkuRoGEldGpHQTeVMI7VHa0qKB09SdOtS+WkNK2cE8hVdfa03jV/RKNOmRXXU7ujLt9Sw==
+
+"next@>= 13.2.5", next@16.2.10:
   version "16.2.10"
   resolved "https://registry.npmjs.org/next/-/next-16.2.10.tgz"
   integrity sha512-2som5AVXb3kE6Yjine3/mNbBayYF58eguBWIVVUdr1y/L426xyVEgYxgBG+1QC34P2x5E+tcDup6XkuOAX3dCA==
@@ -3081,7 +3093,7 @@ react-is@^17.0.1:
     "@types/use-sync-external-store" "^0.0.6"
     use-sync-external-store "^1.4.0"
 
-"react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.9.0 || ^17.0.0 || ^18 || ^19", "react@^18.0 || ^19", "react@^18.0.0 || ^19.0.0", "react@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react@^19.2.4, "react@>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0", react@>=16.8.0, react@19.2.4:
+"react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.9.0 || ^17.0.0 || ^18 || ^19", "react@^18.0 || ^19", "react@^18.0.0 || ^19.0.0", "react@^18.2.0 || 19.0.0-rc-de68d2f4-20241204 || ^19.0.0", react@^19.2.4, "react@>= 16.8.0 || 17.x.x || ^18.0.0-0 || ^19.0.0-0", "react@>= 18.0.0", react@>=16.8.0, react@19.2.4:
   version "19.2.4"
   resolved "https://registry.npmjs.org/react/-/react-19.2.4.tgz"
   integrity sha512-9nfp2hYpCwOjAN+8TZFGhtWEwgvWHXqESH8qT89AT/lWklpLON22Lc8pEtnpsZz7VmawabSU0gCjnj8aC0euHQ==
@@ -3735,7 +3747,7 @@ typescript-eslint@^8.46.0:
     "@typescript-eslint/typescript-estree" "8.71.0"
     "@typescript-eslint/utils" "8.71.0"
 
-typescript@^5, typescript@>=3.3.1, typescript@>=4.8.4, "typescript@>=4.8.4 <6.1.0":
+typescript@^5, typescript@>=3.3.1, typescript@>=4.8.4, "typescript@>=4.8.4 <6.1.0", typescript@5.9.3:
   version "5.9.3"
   resolved "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz"
   integrity sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon, btn } from "@/lib/ui";
 import { upsertInventory, publishSellOffer } from "@/lib/marketplaceStore";
 import { waitForAction } from "@/lib/actionDelay";
@@ -17,6 +18,15 @@ const GRADE_OPTIONS = [
   "Organic Large",
   "Free-range",
 ] as const;
+
+const GRADE_LABEL_KEYS: Record<string, string> = {
+  Large: "grades.large",
+  Medium: "grades.medium",
+  Small: "grades.small",
+  Mixed: "grades.mixed",
+  "Organic Large": "grades.organicLarge",
+  "Free-range": "grades.freeRange",
+};
 
 type RecordStockModalProps = {
   open: boolean;
@@ -38,6 +48,10 @@ export function RecordStockModal({
   onSuccess,
   initial = null,
 }: RecordStockModalProps) {
+  const { t } = useTranslation("listProductForSale");
+  const { t: tSellOffers } = useTranslation("sellOffers");
+  const { t: tBuy } = useTranslation("buyRequests");
+  const { t: tDeals } = useTranslation("deals");
   const session = getSession();
   const [product] = useState("Fresh eggs");
   const [grade, setGrade] = useState(initial?.grade ?? "Large");
@@ -131,7 +145,7 @@ export function RecordStockModal({
         </button>
 
         <h2 className="m-0 pr-10 font-display text-[1.25rem] font-bold sm:text-[1.375rem]">
-          {initial ? "Confirm sell order" : "List product for sale"}
+          {initial ? tSellOffers("confirmSellOrder") : t("title")}
         </h2>
         <p className="mt-1 mb-5 text-[0.6875rem] text-soko-muted">
           {initial
@@ -143,7 +157,7 @@ export function RecordStockModal({
           className="grid grid-cols-1 gap-3 sm:grid-cols-2"
           onSubmit={submit}
         >
-          <Field label="Product">
+          <Field label={tBuy("product")}>
             <input
               className={`${fieldClass} disabled:opacity-80`}
               value={product}
@@ -152,7 +166,7 @@ export function RecordStockModal({
               aria-label="Product (eggs only)"
             />
           </Field>
-          <Field label="Grade / size">
+          <Field label={t("grade")}>
             <select
               className={fieldClass}
               value={grade}
@@ -162,12 +176,14 @@ export function RecordStockModal({
             >
               {gradeChoices.map((option) => (
                 <option key={option} value={option}>
-                  {option}
+                  {GRADE_LABEL_KEYS[option]
+                    ? t(GRADE_LABEL_KEYS[option])
+                    : option}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="Quantity (trays)">
+          <Field label={tBuy("quantityTrays")}>
             <input
               className={fieldClass}
               type="number"
@@ -221,7 +237,7 @@ export function RecordStockModal({
                 <ButtonLoader label="Processing…" />
               ) : (
                 <>
-                  {initial ? "Confirm sell order" : "Publish listing"}{" "}
+                  {initial ? tSellOffers("confirmSellOrder") : t("listForSale")}{" "}
                   <Icon name="arrow" />
                 </>
               )}
@@ -232,7 +248,7 @@ export function RecordStockModal({
               onClick={onClose}
               disabled={loading}
             >
-              Cancel
+              {tDeals("cancel")}
             </button>
           </div>
         </form>

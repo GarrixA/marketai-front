@@ -1,0 +1,11 @@
+{
+  "title": "Market Pulse",
+  "live": "Live",
+  "unitsAvailableToday": "Units Available Today",
+  "listings": "Listings",
+  "availableNow": "Available Now",
+  "activeSellers": "Active Sellers",
+  "verified": "Verified",
+  "supplierAndAggregator": "Supplier And Aggregator",
+  "deliveriesInTransit": "Deliveries In Transit · {{count}}"
+}

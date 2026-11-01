@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { Panel, Field, fieldClass } from "@/components/marketplace/uiBits";
+import { useAppLocale } from "@/components/providers/AppI18nProvider";
 import { useAppDialog } from "@/hooks/useAppDialog";
 import { btn } from "@/lib/ui";
+import { normalizeLocale } from "@/lib/i18n";
 
 const STORAGE_KEY = "soko_workspace_settings";
 
 type WorkspaceSettings = {
   emailNotifications: boolean;
   dealAlerts: boolean;
-  language: "en" | "fr" | "rw";
+  language: "en" | "rw";
   compactTables: boolean;
 };
 
@@ -39,13 +42,20 @@ function loadSettings(): WorkspaceSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaults;
-    return { ...defaults, ...(JSON.parse(raw) as Partial<WorkspaceSettings>) };
+    const parsed = JSON.parse(raw) as Partial<WorkspaceSettings>;
+    return {
+      ...defaults,
+      ...parsed,
+      language: normalizeLocale(parsed.language),
+    };
   } catch {
     return defaults;
   }
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation("settings");
+  const { setLanguage } = useAppLocale();
   const { showSuccess, dialog } = useAppDialog();
   const isClient = useSyncExternalStore(
     subscribeNoop,
@@ -70,6 +80,7 @@ export function SettingsPage() {
   const save = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    void setLanguage(settings.language);
     void showSuccess("Your workspace preferences were saved on this device.", {
       title: "Settings saved",
     });
@@ -82,16 +93,16 @@ export function SettingsPage() {
       {dialog}
       <form className="flex flex-col gap-4" onSubmit={save}>
         <Panel
-          title="Notifications"
-          subtitle="Choose which alerts you want while using the workspace."
+          title={t("notifications")}
+          subtitle={t("notificationsDescription")}
         >
           <label className="mb-3 flex cursor-pointer items-center justify-between gap-4 text-xs">
             <span>
               <strong className="block text-soko-ink">
-                Email notifications
+                {t("emailNotifications")}
               </strong>
               <span className="text-soko-muted">
-                Account and trade updates by email
+                {t("emailNotificationsDescription")}
               </span>
             </span>
             <input
@@ -103,9 +114,9 @@ export function SettingsPage() {
           </label>
           <label className="flex cursor-pointer items-center justify-between gap-4 text-xs">
             <span>
-              <strong className="block text-soko-ink">Deal alerts</strong>
+              <strong className="block text-soko-ink">{t("dealAlerts")}</strong>
               <span className="text-soko-muted">
-                Notify when deals need your action
+                {t("dealAlertsDescription")}
               </span>
             </span>
             <input
@@ -117,30 +128,30 @@ export function SettingsPage() {
           </label>
         </Panel>
 
-        <Panel title="Display" subtitle="Local preferences for this browser.">
+        <Panel title={t("display")} subtitle={t("displayDescription")}>
           <div className="mb-3.5 max-w-xs">
-            <Field label="Language">
+            <Field label={t("language")}>
               <select
                 className={fieldClass}
                 value={settings.language}
-                onChange={(e) =>
-                  update(
-                    "language",
-                    e.target.value as WorkspaceSettings["language"]
-                  )
-                }
+                onChange={(e) => {
+                  const next = normalizeLocale(e.target.value);
+                  update("language", next);
+                  void setLanguage(next);
+                }}
               >
-                <option value="en">English</option>
-                <option value="fr">Français</option>
-                <option value="rw">Kinyarwanda</option>
+                <option value="en">{t("languages.english")}</option>
+                <option value="rw">{t("languages.kinyarwanda")}</option>
               </select>
             </Field>
           </div>
           <label className="flex cursor-pointer items-center justify-between gap-4 text-xs">
             <span>
-              <strong className="block text-soko-ink">Compact tables</strong>
+              <strong className="block text-soko-ink">
+                {t("compactTables")}
+              </strong>
               <span className="text-soko-muted">
-                Denser rows on deals and listings
+                {t("compactTablesDescription")}
               </span>
             </span>
             <input
@@ -157,7 +168,7 @@ export function SettingsPage() {
             type="submit"
             className={`${btn.primaryCompact} sm:px-5.5 sm:py-3.5`}
           >
-            Save settings <Icon name="arrow" />
+            {t("saveSettings")} <Icon name="arrow" />
           </button>
         </div>
       </form>

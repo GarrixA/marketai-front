@@ -1,0 +1,16 @@
+{
+  "sectionEyebrow": "Biboneka ubu",
+  "sectionTitle": "Ibicuruzwa bishya bitangwa n’abacuruzi bemejwe",
+  "sectionDescription": "Fungura umwirondoro w’utanga ibicuruzwa cyangwa uwusanya umusaruro kugira ngo urebe ibicuruzwa byose afite.",
+  "aggregator": "Ukusanya umusaruro",
+  "supplier": "Utanga ibicuruzwa",
+  "trays": "Amakarito y’amagi",
+  "eggs": "Amagi",
+  "available": "biboneka",
+  "pieces": "amagi",
+  "averageTrayPrice": "Impuzandengo y’igiciro cy’ikarito y’amagi",
+  "viewStock": "Reba ibicuruzwa bihari",
+  "sellerLocation": "{{name}} i {{location}}.",
+  "showingSellers": "Hari kwerekanwa abacuruzi {{shown}} muri {{total}} bemejwe",
+  "loadMore": "Erekana abandi"
+}

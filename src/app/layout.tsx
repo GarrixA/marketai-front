@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
+import AppI18nProvider from "@/components/providers/AppI18nProvider";
 import StoreProvider from "@/components/providers/StoreProvider";
 import "./globals.css";
 
@@ -30,9 +31,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${dmSans.variable} ${manrope.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full font-sans">
-        <StoreProvider>{children}</StoreProvider>
+        <AppI18nProvider>
+          <StoreProvider>{children}</StoreProvider>
+        </AppI18nProvider>
       </body>
     </html>
   );

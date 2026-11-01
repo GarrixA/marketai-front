@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import useTranslation from "next-translate/useTranslation";
 import { Icon, btn } from "@/lib/ui";
 import { createBuyFromListing, formatRwf } from "@/lib/marketplaceStore";
 import { waitForAction } from "@/lib/actionDelay";
@@ -90,6 +91,8 @@ function BuyOfferModal({
   showSuccess: ReturnType<typeof useAppDialog>["showSuccess"];
 }) {
   const router = useRouter();
+  const { t: tBuy } = useTranslation("buyRequests");
+  const { t: tCommon } = useTranslation("common");
   const [qty, setQty] = useState(String(offer.minOrder));
   const [loading, setLoading] = useState(false);
   const [meLoading, setMeLoading] = useState(true);
@@ -214,7 +217,7 @@ function BuyOfferModal({
           <Icon name="close" size={16} />
         </button>
         <h3 className="m-0 pr-8 font-display text-[1.125rem] font-bold">
-          Buy from {offer.ownerName}
+          {tCommon("buyFrom", { name: offer.ownerName })}
         </h3>
         <p className="mt-1 mb-4 text-[0.625rem] text-soko-muted">
           {offer.product} · {offer.grade} · {formatRwf(offer.pricePerUnit)}/tray
@@ -277,7 +280,7 @@ function BuyOfferModal({
             }
           }}
         >
-          <Field label="Quantity (trays)">
+          <Field label={tBuy("quantityTrays")}>
             <input
               className={fieldClass}
               type="number"
@@ -365,7 +368,7 @@ function BuyOfferModal({
               <ButtonLoader label="Sending…" />
             ) : (
               <>
-                Send buy request <Icon name="arrow" />
+                {tBuy("sendRequest")} <Icon name="arrow" />
               </>
             )}
           </button>
@@ -408,6 +411,8 @@ function BuyOfferModal({
 }
 
 export function SellOffersPanel() {
+  const { t } = useTranslation("sellOffers");
+  const { t: tCommon } = useTranslation("common");
   const { sellOffers } = useMarketplace();
   const session = getSession();
   const { dialog, showError, showSuccess } = useAppDialog();
@@ -436,15 +441,15 @@ export function SellOffersPanel() {
     <>
       <div className="space-y-4">
         <Panel
-          title="Confirmed sell offers"
-          subtitle="Only products a supplier or aggregator confirmed with Sell → Confirm sell order."
+          title={t("confirmedSellOffers")}
+          subtitle={t("confirmedSellOffersDescription")}
           action={
             <div className="inline-flex rounded-full bg-soko-slate p-1">
               {(
                 [
-                  ["all", "All"],
-                  ["supplier", "Suppliers"],
-                  ["aggregator", "Aggregators"],
+                  ["all", t("filters.all")],
+                  ["supplier", t("filters.suppliers")],
+                  ["aggregator", t("filters.aggregators")],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -464,7 +469,7 @@ export function SellOffersPanel() {
           }
         >
           {offers.length === 0 ? (
-            <EmptyState message="No confirmed sell offers yet. When a seller confirms Sell, it appears here." />
+            <EmptyState message={t("emptyState")} />
           ) : (
             <div className="flex flex-col gap-3">
               {offers.map((item) => (
@@ -510,7 +515,7 @@ export function SellOffersPanel() {
                       className={btn.buySm}
                       onClick={() => setBuying(item)}
                     >
-                      Buy
+                      {tCommon("buy")}
                     </button>
                   </div>
                 </article>
@@ -540,7 +545,7 @@ export function SellOffersPanel() {
             if (!deal) return;
             setTradeResult({
               kind: "buy",
-              title: "Buy request sent",
+              title: tCommon("buyRequestSent"),
               message:
                 "The seller can confirm or reject this request from Deals.",
               details: [

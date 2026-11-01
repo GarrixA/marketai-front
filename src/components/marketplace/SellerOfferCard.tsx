@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { UserAvatar } from "@/components/UserAvatar";
 import { VerifiedBadge } from "@/components/marketplace/VerifiedBadge";
@@ -33,8 +34,14 @@ function Stat({
 }
 
 export function SellerOfferCard({ seller }: { seller: SellerOffer }) {
+  const { t } = useTranslation("suppliers");
   const verified = seller.verificationStatus === "VERIFIED";
-  const role = roleLabel(seller.role);
+  const role =
+    seller.role === "aggregator"
+      ? t("aggregator")
+      : seller.role === "supplier"
+        ? t("supplier")
+        : roleLabel(seller.role);
 
   return (
     <Link
@@ -96,21 +103,21 @@ export function SellerOfferCard({ seller }: { seller: SellerOffer }) {
 
         <span className="mt-4 grid grid-cols-2 gap-2">
           <Stat
-            label="Trays"
+            label={t("trays")}
             value={seller.trayQuantity.toLocaleString("en-RW")}
-            hint="available"
+            hint={t("available")}
           />
           <Stat
-            label="Eggs"
+            label={t("eggs")}
             value={seller.eggQuantity.toLocaleString("en-RW")}
-            hint="pieces"
+            hint={t("pieces")}
           />
         </span>
 
         <span className="mt-3 flex items-end justify-between gap-3 border-t border-soko-line pt-3">
           <span>
             <small className="block text-[0.5rem] font-extrabold tracking-[0.08em] text-soko-muted uppercase">
-              Avg. tray price
+              {t("averageTrayPrice")}
             </small>
             <strong className="mt-0.5 block font-display text-[1.05rem] font-extrabold text-soko-ink">
               {seller.averageTrayPrice
@@ -119,7 +126,7 @@ export function SellerOfferCard({ seller }: { seller: SellerOffer }) {
             </strong>
           </span>
           <span className="inline-flex items-center gap-1 text-xs font-bold text-soko-navy group-hover:underline">
-            View stock
+            {t("viewStock")}
             <Icon name="arrow" size={14} />
           </span>
         </span>

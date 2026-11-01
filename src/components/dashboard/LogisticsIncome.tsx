@@ -1,5 +1,6 @@
 "use client";
 
+import useTranslation from "next-translate/useTranslation";
 import { formatRwf } from "@/lib/marketplaceStore";
 import {
   liveDealListOptions,
@@ -8,6 +9,7 @@ import {
 import { EmptyState, Panel } from "@/components/marketplace/uiBits";
 
 export function LogisticsIncome() {
+  const { t } = useTranslation("logisticsDashboard");
   const { data, isLoading, isError } = useListLogisticsIncomeQuery(
     undefined,
     liveDealListOptions
@@ -18,19 +20,19 @@ export function LogisticsIncome() {
     <div className="space-y-4.25">
       <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
         <Summary
-          label="Delivery income"
+          label={t("deliveryIncome")}
           value={isLoading ? "…" : formatRwf(data?.total ?? 0)}
-          hint="Credited when the buyer confirms delivery"
+          hint={t("deliveryIncomeHint")}
         />
         <Summary
-          label="Completed deliveries"
+          label={t("completedDeliveries")}
           value={isLoading ? "…" : String(data?.count ?? 0)}
-          hint="Fees already released to you"
+          hint={t("completedDeliveriesHint")}
         />
       </div>
 
       <Panel
-        title="Income"
+        title={t("income")}
         subtitle="Each row is the delivery fee from a confirmed drop-off. The platform fee and the seller payout are settled separately."
       >
         {isLoading && entries.length === 0 ? (

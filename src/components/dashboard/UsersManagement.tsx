@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { ButtonLoader } from "@/components/ActionLoader";
 import { useAppDialog } from "@/hooks/useAppDialog";
@@ -22,6 +23,15 @@ const emptyCreateForm = (): CreateForm => ({
 });
 
 export function UsersManagement() {
+  const { t } = useTranslation("users");
+  const roleLabel = (name: string) =>
+    t(`roleLabels.${name}`, undefined, { default: name });
+  const statusLabel = (status: string) => {
+    const key = status.toLowerCase();
+    return key === "active" || key === "inactive"
+      ? t(key, undefined, { default: status })
+      : status;
+  };
   const { confirm, showSuccess, showError, showWarning, dialog } =
     useAppDialog();
   const [users, setUsers] = useState<ListedUser[]>([]);
@@ -216,10 +226,10 @@ export function UsersManagement() {
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="m-0 mb-0.5 font-display text-[0.9375rem] font-bold">
-              Users
+              {t("sectionTitle")}
             </h2>
             <p className="m-0 text-[0.625rem] text-soko-muted">
-              Manage accounts and assign marketplace roles.
+              {t("sectionDescription")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -229,7 +239,7 @@ export function UsersManagement() {
               onClick={() => void load()}
               disabled={loading || saving}
             >
-              Refresh
+              {t("refresh")}
             </button>
             <button
               type="button"
@@ -237,19 +247,20 @@ export function UsersManagement() {
               onClick={() => setCreateOpen((open) => !open)}
               disabled={saving}
             >
-              {createOpen ? "Close form" : "Create user"} <Icon name="arrow" />
+              {createOpen ? "Close form" : t("createUser")}{" "}
+              <Icon name="arrow" />
             </button>
           </div>
         </div>
 
         <label className="mb-4 block text-[0.625rem] font-bold">
-          Search
+          {t("search")}
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="mt-1.5 block w-full rounded-1.25 border border-soko-line p-2.75 text-xs outline-soko-navy"
-            placeholder="Name, email, phone, role…"
+            placeholder={t("searchPlaceholder")}
           />
         </label>
 
@@ -262,8 +273,8 @@ export function UsersManagement() {
               [
                 ["firstName", "First name", "text"],
                 ["lastName", "Last name", "text"],
-                ["email", "Email", "email"],
-                ["phone", "Phone", "tel"],
+                ["email", t("email"), "email"],
+                ["phone", t("phone"), "tel"],
                 ["password", "Password", "password"],
               ] as const
             ).map(([key, label, type]) => (
@@ -295,7 +306,7 @@ export function UsersManagement() {
                 <option value="">No role yet</option>
                 {roles.map((role) => (
                   <option key={role.id} value={role.name}>
-                    {role.name}
+                    {roleLabel(role.name)}
                   </option>
                 ))}
               </select>
@@ -328,10 +339,10 @@ export function UsersManagement() {
             <table className="w-full min-w-[44rem] border-collapse text-left">
               <thead>
                 <tr className="border-b border-soko-line text-[0.5625rem] tracking-wide text-soko-muted uppercase">
-                  <th className="px-2 py-2.5 font-bold">User</th>
-                  <th className="px-2 py-2.5 font-bold">Status</th>
-                  <th className="px-2 py-2.5 font-bold">Roles</th>
-                  <th className="px-2 py-2.5 font-bold">Assign / update</th>
+                  <th className="px-2 py-2.5 font-bold">{t("user")}</th>
+                  <th className="px-2 py-2.5 font-bold">{t("status")}</th>
+                  <th className="px-2 py-2.5 font-bold">{t("roles")}</th>
+                  <th className="px-2 py-2.5 font-bold">{t("assignUpdate")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -351,9 +362,13 @@ export function UsersManagement() {
                         {user.phone}
                       </span>
                     </td>
-                    <td className="px-2 py-3 text-[0.625rem]">{user.status}</td>
                     <td className="px-2 py-3 text-[0.625rem]">
-                      {user.roles.length > 0 ? user.roles.join(", ") : "—"}
+                      {statusLabel(user.status)}
+                    </td>
+                    <td className="px-2 py-3 text-[0.625rem]">
+                      {user.roles.length > 0
+                        ? user.roles.map(roleLabel).join(", ")
+                        : "—"}
                     </td>
                     <td className="px-2 py-3">
                       <div className="flex flex-wrap items-center gap-2">
@@ -368,10 +383,10 @@ export function UsersManagement() {
                           className="rounded-1.25 border border-soko-line bg-white px-2 py-1.5 text-[0.625rem] outline-soko-navy"
                           disabled={saving}
                         >
-                          <option value="">Select role</option>
+                          <option value="">{t("selectRole")}</option>
                           {roles.map((role) => (
                             <option key={role.id} value={role.name}>
-                              {role.name}
+                              {roleLabel(role.name)}
                             </option>
                           ))}
                         </select>
@@ -381,7 +396,7 @@ export function UsersManagement() {
                           onClick={() => void applyRole(user)}
                           disabled={saving}
                         >
-                          Apply
+                          {t("apply")}
                         </button>
                       </div>
                     </td>

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import nextTranslate from "next-translate-plugin";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -27,4 +28,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const isTurbopack = !process.argv.includes("--webpack");
+
+export default nextTranslate(nextConfig, { turbopack: isTurbopack });

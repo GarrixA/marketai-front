@@ -1,0 +1,21 @@
+{
+  "title": "Igenamiterere",
+  "description": "Ibyo uhitamo mu gukoresha urubuga kuri iyi mushakisha.",
+  "notifications": "Imenyesha",
+  "notificationsDescription": "Hitamo imenyesha ushaka kujya ubona igihe ukoresha urubuga.",
+  "emailNotifications": "Imenyesha kuri imeyili",
+  "emailNotificationsDescription": "Amakuru mashya yerekeye konti n’ubucuruzi yoherezwa kuri imeyili.",
+  "dealAlerts": "Imenyesha ry’amasezerano y’ubucuruzi",
+  "dealAlertsDescription": "Menyeshwa igihe hari amasezerano y’ubucuruzi agusaba kugira icyo ukora.",
+  "display": "Uko amakuru agaragara",
+  "displayDescription": "Ibyo uhitamo ku buryo amakuru agaragara kuri iyi mushakisha.",
+  "language": "Ururimi",
+  "languages": {
+    "english": "Icyongereza",
+    "french": "Igifaransa",
+    "kinyarwanda": "Ikinyarwanda"
+  },
+  "compactTables": "Imbonerahamwe zifunganye",
+  "compactTablesDescription": "Gabanya umwanya uri hagati y’imirongo mu mbonerahamwe z’amasezerano n’iz’ibicuruzwa.",
+  "saveSettings": "Bika igenamiterere"
+}

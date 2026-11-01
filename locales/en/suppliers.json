@@ -1,0 +1,16 @@
+{
+  "sectionEyebrow": "Available now",
+  "sectionTitle": "Fresh from verified suppliers",
+  "sectionDescription": "Open a supplier or aggregator to see every listing they have.",
+  "aggregator": "Aggregator",
+  "supplier": "Supplier",
+  "trays": "Trays",
+  "eggs": "Eggs",
+  "available": "Available",
+  "pieces": "Pieces",
+  "averageTrayPrice": "Average Tray Price",
+  "viewStock": "View Stock",
+  "sellerLocation": "Seller Location · {{name}} · {{location}}",
+  "showingSellers": "Showing {{shown}} of {{total}} verified sellers",
+  "loadMore": "Load More"
+}

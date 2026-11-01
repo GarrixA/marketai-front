@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { getSession, type DashboardRole } from "@/lib/session";
+import {
+  getSessionSnapshot,
+  subscribeSession,
+  type DashboardRole,
+} from "@/lib/session";
 import {
   roleCanAccess,
   SECTION_PATH,
@@ -11,18 +15,17 @@ import {
 
 export function useDashboardRole() {
   const router = useRouter();
-  const [role, setRole] = useState<DashboardRole | null>(null);
+  const session = useSyncExternalStore(
+    subscribeSession,
+    getSessionSnapshot,
+    () => null
+  );
 
   useEffect(() => {
-    const session = getSession();
-    if (!session) {
-      router.replace("/");
-      return;
-    }
-    setRole(session.role);
-  }, [router]);
+    if (!session) router.replace("/");
+  }, [session, router]);
 
-  return role;
+  return session?.role ?? null;
 }
 
 export function RolePage({

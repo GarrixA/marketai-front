@@ -1,0 +1,31 @@
+{
+  "title": "Sales",
+  "description": "Manage what you sold on the marketplace.",
+  "listForSale": "List For Sale",
+  "salesAndDelivery": "Sales And Delivery",
+  "salesAndDeliveryDescription": "What you sold, and the steps to get it from your pickup to the buyer.",
+  "paymentReceived": "Payment Received",
+  "paymentHeldDescription": "Buyer payment is held until delivery is confirmed.",
+  "requestTransport": "Request Transport",
+  "requestTransportDescription": "Ask logistics to pick up and deliver to the buyer.",
+  "acceptQuote": "Accept Quote",
+  "acceptQuoteDescription": "Choose a transporter. Accepting starts the delivery plan.",
+  "packaging": "Packaging",
+  "packagingDescription": "When logistics asks, confirm packaging is ready.",
+  "inTransit": "In Transit",
+  "inTransitDescription": "After packaging is confirmed, the order is marked in transit.",
+  "delivered": "Delivered",
+  "packagingConfirmedInTransit": "Packaging confirmed. Now in transit.",
+  "buyerConfirmedDelivery": "Buyer Confirmed Delivery",
+  "sellerPayoutSummary": "Buyer confirmed delivery. You receive {{netAmount}} after a {{platformFeePercent}}% platform fee ({{platformFee}}) and delivery ({{deliveryFee}}).",
+  "orderSummary": "{{buyer}} · {{quantity}} {{unit}} · {{amount}} · {{product}}",
+  "deliveryRoute": "{{pickupLocation}} → {{deliveryLocation}}",
+  "steps": {
+    "paymentReceived": "Payment received",
+    "requestTransport": "Request transport",
+    "acceptQuote": "Accept a quote",
+    "packaging": "Packaging",
+    "inTransit": "In transit"
+  },
+  "paidSalesEmpty": "Paid sales will show up here with the delivery steps."
+}

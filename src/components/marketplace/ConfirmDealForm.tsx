@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { btn } from "@/lib/ui";
 import { confirmDealQuantity, rejectDeal } from "@/lib/marketplaceStore";
 import { waitForAction } from "@/lib/actionDelay";
@@ -40,6 +41,7 @@ export function ConfirmDealForm({
   allowReject?: boolean;
   onConfirmed?: () => void;
 }) {
+  const { t } = useTranslation("deals");
   const session = getSession();
   const { dialog, showError } = useAppDialog();
   const { data: me, isLoading: meLoading } = useGetMeQuery(undefined, {
@@ -124,7 +126,7 @@ export function ConfirmDealForm({
           }
         }}
       >
-        <Field label="Available qty">
+        <Field label={t("availableQty")}>
           <input
             className={fieldClass}
             type="number"
@@ -144,7 +146,7 @@ export function ConfirmDealForm({
             </p>
           ) : null}
         </Field>
-        <Field label="Offer / tray">
+        <Field label={t("offerPerTray")}>
           <input
             className={fieldClass}
             type="number"
@@ -154,7 +156,7 @@ export function ConfirmDealForm({
             disabled={Boolean(loading)}
           />
         </Field>
-        <Field label="Pickup location">
+        <Field label={t("pickupLocation")}>
           <input
             className={`${fieldClass} bg-soko-slate text-soko-ink`}
             value={meLoading ? "Loading business location…" : pickup || "—"}
@@ -179,7 +181,7 @@ export function ConfirmDealForm({
             {loading === "confirm" ? (
               <ButtonLoader label="Confirming…" />
             ) : (
-              "Confirm available"
+              t("confirmAvailable")
             )}
           </button>
           {allowReject ? (
@@ -214,7 +216,7 @@ export function ConfirmDealForm({
               {loading === "reject" ? (
                 <ButtonLoader label="Rejecting…" />
               ) : (
-                "Reject"
+                t("reject")
               )}
             </button>
           ) : null}

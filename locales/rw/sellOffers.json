@@ -1,0 +1,15 @@
+{
+  "title": "Amatangazo yo kugurisha",
+  "description": "Amatangazo mashya y’ibicuruzwa atangwa n’abatanga ibicuruzwa n’abakusanya umusaruro — yasuzume maze ugure.",
+  "listForSale": "Shyira igicuruzwa ku isoko",
+  "confirmedSellOffers": "Amatangazo yo kugurisha yemejwe",
+  "confirmedSellOffersDescription": "Ibicuruzwa byonyine byemejwe n’utanga ibicuruzwa cyangwa ukusanya umusaruro akoresheje Kugurisha → Emeza itegeko ryo kugurisha.",
+  "filters": {
+    "all": "Byose",
+    "suppliers": "Abatanga ibicuruzwa",
+    "aggregators": "Abakusanya umusaruro"
+  },
+  "emptyState": "Nta matangazo yo kugurisha yemejwe arahari. Iyo umucuruzi yemeje kugurisha, itangazo rye rigaragara hano.",
+  "sell": "Gurisha",
+  "confirmSellOrder": "Emeza itegeko ryo kugurisha"
+}

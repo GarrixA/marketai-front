@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { ButtonLoader } from "@/components/ActionLoader";
@@ -15,6 +16,7 @@ type ResetPasswordFormProps = {
 };
 
 export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
+  const { t } = useTranslation("auth");
   const router = useRouter();
   const { showError, showSuccess, dialog } = useAppDialog();
   const [password, setPassword] = useState("");
@@ -27,8 +29,8 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     if (loading) return;
 
     if (password !== confirmPassword) {
-      await showError("Passwords do not match.", {
-        title: "Check your password",
+      await showError(t("resetPassword.passwordMismatch"), {
+        title: t("resetPassword.passwordMismatchTitle"),
       });
       return;
     }
@@ -40,12 +42,14 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         confirmPassword,
       });
       await showSuccess(result.message, {
-        title: "Password updated",
-        confirmLabel: "Go to sign in",
+        title: t("resetPassword.successTitle"),
+        confirmLabel: t("resetPassword.goToSignIn"),
       });
       router.push("/?auth=login");
     } catch (err) {
-      await showError(formatApiError(err), { title: "Reset failed" });
+      await showError(formatApiError(err), {
+        title: t("resetPassword.failedTitle"),
+      });
     } finally {
       setLoading(false);
     }
@@ -61,25 +65,25 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           </div>
 
           <span className="text-[0.6875rem] font-extrabold tracking-[0.1375rem] text-soko-green-2 uppercase">
-            Password reset
+            {t("resetPassword.eyebrow")}
           </span>
           <h1 className="my-2 font-display text-[1.875rem] font-bold">
-            Choose a new password
+            {t("resetPassword.title")}
           </h1>
           <p className="mt-0 text-xs text-soko-muted">
-            Enter a new password for your MarketAI account.
+            {t("resetPassword.description")}
           </p>
 
           <form className="mt-6" onSubmit={(e) => void submit(e)}>
             <label className="mb-3.5 block text-[0.625rem] font-bold">
-              New password
+              {t("resetPassword.newPassword")}
               <span className="relative mt-1.5 block">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full rounded-1.25 border border-soko-line p-2.75 pr-10 text-xs outline-soko-navy disabled:opacity-60"
-                  placeholder="At least 8 characters"
+                  placeholder={t("resetPassword.passwordPlaceholder")}
                   autoComplete="new-password"
                   required
                   minLength={8}
@@ -89,7 +93,11 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
                   type="button"
                   className="absolute top-1/2 right-2.5 grid -translate-y-1/2 place-items-center border-0 bg-transparent p-0.5 text-soko-muted hover:text-soko-navy"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword
+                      ? t("common.hidePassword")
+                      : t("common.showPassword")
+                  }
                   disabled={loading}
                 >
                   <Icon name={showPassword ? "eyeOff" : "eye"} size={16} />
@@ -98,13 +106,13 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
             </label>
 
             <label className="mb-3.5 block text-[0.625rem] font-bold">
-              Confirm password
+              {t("resetPassword.confirmPassword")}
               <input
                 type={showPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="mt-1.5 block w-full rounded-1.25 border border-soko-line p-2.75 text-xs outline-soko-navy disabled:opacity-60"
-                placeholder="Repeat password"
+                placeholder={t("resetPassword.confirmPasswordPlaceholder")}
                 autoComplete="new-password"
                 required
                 minLength={8}
@@ -119,10 +127,10 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               aria-busy={loading}
             >
               {loading ? (
-                <ButtonLoader label="Updating…" />
+                <ButtonLoader label={t("resetPassword.submitting")} />
               ) : (
                 <>
-                  Reset password <Icon name="arrow" />
+                  {t("resetPassword.submit")} <Icon name="arrow" />
                 </>
               )}
             </button>

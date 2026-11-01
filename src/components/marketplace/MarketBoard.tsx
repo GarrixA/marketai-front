@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { ActionButton, ActionToggle, Icon } from "@/lib/ui";
 import { EmptyState } from "@/components/marketplace/uiBits";
 import { BuyQtyModal } from "@/components/marketplace/ProductMarketPanel";
@@ -96,6 +97,7 @@ function MarketCard({
 }
 
 export function MarketBoard({ role }: { role: DashboardRole }) {
+  const { t } = useTranslation("common");
   const session = getSession();
   const { dialog, showError, showSuccess } = useAppDialog();
   const [createDeal] = useCreateDealMutation();
@@ -154,10 +156,15 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
           value={marketTab}
           onChange={setMarketTab}
           options={[
-            { value: "buy", label: "Buy", icon: "cart", activeVariant: "buy" },
+            {
+              value: "buy",
+              label: t("buy"),
+              icon: "cart",
+              activeVariant: "buy",
+            },
             {
               value: "sell",
-              label: "Sell",
+              label: t("sell"),
               icon: "tag",
               activeVariant: "sell",
             },
@@ -168,9 +175,9 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
       {showingBuy ? (
         <section className="space-y-3">
           {isLoading ? (
-            <EmptyState message="Loading listings…" />
+            <EmptyState message={t("loadingListings")} />
           ) : listings.length === 0 ? (
-            <EmptyState message="No listings yet." />
+            <EmptyState message={t("noListingsYet")} />
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
               {listings.map((product) => (
@@ -189,8 +196,14 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
                   unit={product.unit.toLowerCase()}
                   quantityLabel={
                     product.sellMode === "LOT"
-                      ? `Lot of ${product.availableQuantity} ${product.unit}`
-                      : `Available ${product.availableQuantity} ${product.unit}`
+                      ? t("lotOf", {
+                          quantity: product.availableQuantity,
+                          unit: product.unit,
+                        })
+                      : t("availableCount", {
+                          quantity: product.availableQuantity,
+                          unit: product.unit,
+                        })
                   }
                   location={`${formatRwandaLocation(product.location)}${
                     product.useMarketplaceLocation ? " · profile location" : ""
@@ -205,7 +218,7 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
                       size="sm"
                       onClick={() => setBuying(product)}
                     >
-                      Buy
+                      {t("buy")}
                     </ActionButton>
                   }
                 />
@@ -218,9 +231,9 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
       {showingSell ? (
         <section className="space-y-3">
           {requestsLoading ? (
-            <EmptyState message="Loading buy requests…" />
+            <EmptyState message={t("loadingBuyRequests")} />
           ) : requests.length === 0 ? (
-            <EmptyState message="No open buy requests yet." />
+            <EmptyState message={t("noOpenBuyRequests")} />
           ) : (
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
               {requests.map((deal) => (
@@ -249,7 +262,7 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
                   action={
                     offeredIds.has(deal.id) ? (
                       <p className="m-0 text-[0.625rem] font-semibold text-soko-green-2">
-                        Offer sent
+                        {t("offerSent")}
                       </p>
                     ) : (
                       <ActionButton
@@ -257,7 +270,7 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
                         size="sm"
                         onClick={() => setSelling(deal)}
                       >
-                        Sell
+                        {t("sell")}
                       </ActionButton>
                     )
                   }
@@ -279,10 +292,9 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
             const product = buying;
             const ownerId = product.ownerId ?? product.owner?.id;
             if (!ownerId) {
-              await showError(
-                "This listing has no seller account attached. Try another product.",
-                { title: "Could not send buy request" }
-              );
+              await showError(t("listingNoSeller"), {
+                title: t("couldNotSendBuyRequest"),
+              });
               return;
             }
 
@@ -298,9 +310,8 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
               : deal.productName;
             setTradeResult({
               kind: "buy",
-              title: "Buy request sent",
-              message:
-                "The seller was notified on Deals. They will confirm available quantity before payment.",
+              title: t("buyRequestSent"),
+              message: t("buyRequestSentMessage"),
               details: [
                 productLabel,
                 `${deal.quantity} ${deal.unit.toLowerCase()} · ${formatRwf(deal.targetPrice)} / ${deal.unit.toLowerCase()}`,
@@ -318,7 +329,7 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="m-0 font-display text-lg font-bold">
-                  Sell into request
+                  {t("sellIntoRequest")}
                 </h3>
                 <p className="m-0 mt-1 text-xs text-soko-muted">
                   {selling.product} · {selling.quantity} {selling.unit} ·{" "}
@@ -329,7 +340,7 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
                 type="button"
                 className="grid h-8 w-8 place-items-center rounded-full border-0 bg-soko-slate text-soko-ink"
                 onClick={() => setSelling(null)}
-                aria-label="Close"
+                aria-label={t("close")}
               >
                 <Icon name="close" size={16} />
               </button>

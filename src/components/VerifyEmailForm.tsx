@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { ButtonLoader } from "@/components/ActionLoader";
@@ -15,6 +16,7 @@ type VerifyEmailFormProps = {
 };
 
 export function VerifyEmailForm({ token }: VerifyEmailFormProps) {
+  const { t } = useTranslation("auth");
   const router = useRouter();
   const { showError, showSuccess, dialog } = useAppDialog();
   const [code, setCode] = useState("");
@@ -26,8 +28,8 @@ export function VerifyEmailForm({ token }: VerifyEmailFormProps) {
 
     const normalized = code.trim();
     if (!/^\d{6}$/.test(normalized)) {
-      await showError("Enter the 6-digit code from your email.", {
-        title: "Invalid code",
+      await showError(t("verifyEmail.invalidCode"), {
+        title: t("verifyEmail.invalidCodeTitle"),
       });
       return;
     }
@@ -38,8 +40,8 @@ export function VerifyEmailForm({ token }: VerifyEmailFormProps) {
 
       if (result.nextAction === "SELECT_ROLE" && result.userId) {
         await showSuccess(result.message, {
-          title: "Email verified",
-          confirmLabel: "Select your role",
+          title: t("verifyEmail.successTitle"),
+          confirmLabel: t("verifyEmail.selectRole"),
         });
         router.push(
           `/?auth=claim-role&userId=${encodeURIComponent(result.userId)}&email=${encodeURIComponent(result.email)}`
@@ -48,12 +50,14 @@ export function VerifyEmailForm({ token }: VerifyEmailFormProps) {
       }
 
       await showSuccess(result.message, {
-        title: "Email verified",
-        confirmLabel: "Go to sign in",
+        title: t("verifyEmail.successTitle"),
+        confirmLabel: t("verifyEmail.goToSignIn"),
       });
       router.push("/?auth=login");
     } catch (err) {
-      await showError(formatApiError(err), { title: "Verification failed" });
+      await showError(formatApiError(err), {
+        title: t("verifyEmail.failedTitle"),
+      });
     } finally {
       setLoading(false);
     }
@@ -69,18 +73,18 @@ export function VerifyEmailForm({ token }: VerifyEmailFormProps) {
           </div>
 
           <span className="text-[0.6875rem] font-extrabold tracking-[0.1375rem] text-soko-green-2 uppercase">
-            Step 2 of 3
+            {t("verifyEmail.eyebrow")}
           </span>
           <h1 className="my-2 font-display text-[1.875rem] font-bold">
-            Verify your email
+            {t("verifyEmail.title")}
           </h1>
           <p className="mt-0 text-xs text-soko-muted">
-            Enter the 6-digit code from your email to confirm your account.
+            {t("verifyEmail.description")}
           </p>
 
           <form className="mt-6" onSubmit={(e) => void submit(e)}>
             <label className="mb-3.5 block text-[0.625rem] font-bold">
-              Verification code
+              {t("verifyEmail.code")}
               <input
                 type="text"
                 inputMode="numeric"
@@ -91,7 +95,7 @@ export function VerifyEmailForm({ token }: VerifyEmailFormProps) {
                   setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
                 className="mt-1.5 block w-full rounded-1.25 border border-soko-line p-2.75 text-center text-lg tracking-[0.28em] outline-soko-navy disabled:opacity-60"
-                placeholder="000000"
+                placeholder={t("verifyEmail.codePlaceholder")}
                 autoComplete="one-time-code"
                 required
                 disabled={loading}
@@ -105,24 +109,24 @@ export function VerifyEmailForm({ token }: VerifyEmailFormProps) {
               aria-busy={loading}
             >
               {loading ? (
-                <ButtonLoader label="Verifying…" />
+                <ButtonLoader label={t("verifyEmail.submitting")} />
               ) : (
                 <>
-                  Verify <Icon name="arrow" />
+                  {t("verifyEmail.submit")} <Icon name="arrow" />
                 </>
               )}
             </button>
           </form>
 
           <p className="mt-5 mb-0 text-center text-xs text-soko-muted">
-            Already verified?{" "}
+            {t("verifyEmail.alreadyVerified")}{" "}
             <button
               type="button"
               className="border-0 bg-transparent p-0 font-bold text-soko-navy underline-offset-2 hover:underline"
               onClick={() => router.push("/?auth=login")}
               disabled={loading}
             >
-              Sign in
+              {t("common.signIn")}
             </button>
           </p>
         </div>

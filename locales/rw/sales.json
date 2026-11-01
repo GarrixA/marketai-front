@@ -1,0 +1,31 @@
+{
+  "title": "Ibyagurishijwe",
+  "description": "Cunga ibicuruzwa wagurishije ku isoko ry’igerageza.",
+  "listForSale": "Shyira igicuruzwa ku isoko",
+  "salesAndDelivery": "Ibyagurishijwe n’itangwa ryabyo",
+  "salesAndDeliveryDescription": "Reba ibicuruzwa wagurishije n’intambwe zo kubigeza ku muguzi uhereye aho bifatirwa.",
+  "paymentReceived": "Ubwishyu bwakiriwe",
+  "paymentHeldDescription": "Amafaranga yishyuwe n’umuguzi abikwa kugeza ibicuruzwa bigejejwe aho bigomba kugera.",
+  "requestTransport": "Saba ubwikorezi",
+  "requestTransportDescription": "Saba abashinzwe ubwikorezi gufata ibicuruzwa no kubigeza ku muguzi.",
+  "acceptQuote": "Emeza igiciro cy’ubwikorezi",
+  "acceptQuoteDescription": "Hitamo utwara ibicuruzwa. Kumwemeza bitangiza gahunda yo kubigeza ku muguzi.",
+  "packaging": "Gupakira ibicuruzwa",
+  "packagingDescription": "Abashinzwe ubwikorezi nibabigusaba, emeza ko ibicuruzwa byapakiwe.",
+  "inTransit": "Ibicuruzwa biri mu nzira",
+  "inTransitDescription": "Iyo umaze kwemeza ko ibicuruzwa byapakiwe, bigaragazwa nk’ibiri mu nzira.",
+  "delivered": "Byagejejwe ku muguzi",
+  "packagingConfirmedInTransit": "Byemejwe ko ibicuruzwa byapakiwe. Ubu biri mu nzira.",
+  "buyerConfirmedDelivery": "Umuguzi yemeje ko yakiriye ibicuruzwa.",
+  "sellerPayoutSummary": "Umuguzi yemeje ko yakiriye ibicuruzwa. Uhabwa {{netAmount}} nyuma yo gukuraho amafaranga ya serivisi y’isoko angana na {{platformFeePercent}}% ({{platformFee}}) n’ay’ubwikorezi ({{deliveryFee}}).",
+  "orderSummary": "{{product}} · {{buyer}} · {{quantity}} {{unit}} · {{amount}}",
+  "deliveryRoute": "{{pickupLocation}} → {{deliveryLocation}}",
+  "steps": {
+    "paymentReceived": "Ubwishyu bwakiriwe",
+    "requestTransport": "Saba ubwikorezi",
+    "acceptQuote": "Emeza igiciro cy’ubwikorezi",
+    "packaging": "Gupakira ibicuruzwa",
+    "inTransit": "Ibicuruzwa biri mu nzira"
+  },
+  "paidSalesEmpty": "Ibicuruzwa byagurishijwe kandi byishyuwe bizagaragara hano, hamwe n’intambwe zo kubigeza ku muguzi."
+}

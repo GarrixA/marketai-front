@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { formatRwandaLocation } from "@/components/forms/RwandaLocationFields";
 import { formatRwf } from "@/lib/marketplaceStore";
@@ -37,11 +38,12 @@ function formatWhen(value: string) {
 }
 
 function StatusPill({ status }: { status: ListingStatus }) {
+  const { t } = useTranslation("products");
   return (
     <span
       className={`inline-flex rounded-md px-2 py-0.5 text-[0.5625rem] font-bold tracking-wide uppercase ${statusClass(status)}`}
     >
-      {status}
+      {status === "AVAILABLE" ? t("available") : t("unavailable")}
     </span>
   );
 }
@@ -72,6 +74,8 @@ function ProductDetailsDialog({
   product: MarketplaceProduct;
   onClose: () => void;
 }) {
+  const { t } = useTranslation("products");
+  const { t: tListing } = useTranslation("listProductForSale");
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -86,6 +90,12 @@ function ProductDetailsDialog({
   const seller = product.owner?.name || "Seller";
   const role = product.owner?.role;
   const status = listingStatus(product);
+  const roleLabel =
+    role === "supplier"
+      ? t("supplier")
+      : role === "aggregator"
+        ? t("aggregator")
+        : role;
 
   return (
     <div
@@ -127,11 +137,11 @@ function ProductDetailsDialog({
 
         <div className="grid grid-cols-2 border-b border-soko-line sm:grid-cols-4">
           <Metric
-            label="Quantity"
+            label={t("quantity")}
             value={`${product.availableQuantity} ${product.unit.toLowerCase()}`}
           />
           <Metric
-            label="Listed value"
+            label={t("listedValue")}
             value={formatRwf(listedValue(product))}
           />
           <Metric label="Price" value={formatRwf(Number(product.price || 0))} />
@@ -144,7 +154,7 @@ function ProductDetailsDialog({
         <div className="space-y-4 bg-soko-slate/60 p-4 sm:p-5">
           <div className="rounded-xl border border-soko-line bg-white p-3.5">
             <p className="m-0 text-[0.5625rem] font-bold tracking-[0.08em] text-soko-muted uppercase">
-              Seller
+              {t("seller")}
             </p>
             <div className="mt-2.5 flex items-center gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-soko-slate font-display text-xs font-bold text-soko-navy">
@@ -155,7 +165,7 @@ function ProductDetailsDialog({
                   {seller}
                 </p>
                 <p className="m-0 truncate text-[0.6875rem] text-soko-muted capitalize">
-                  {role || "Seller"}
+                  {roleLabel || "Seller"}
                   {product.category?.name ? ` · ${product.category.name}` : ""}
                 </p>
               </div>
@@ -174,7 +184,7 @@ function ProductDetailsDialog({
           {product.description ? (
             <div className="rounded-xl border border-soko-line bg-white px-4 py-3">
               <p className="m-0 text-[0.5625rem] font-bold tracking-[0.08em] text-soko-muted uppercase">
-                Description
+                {tListing("descriptionLabel")}
               </p>
               <p className="m-0 mt-1 text-sm leading-snug text-soko-ink">
                 {product.description}
@@ -188,6 +198,7 @@ function ProductDetailsDialog({
 }
 
 export function AdminProducts() {
+  const { t } = useTranslation("products");
   const { data: products = [], isLoading, isError } = useListAllProductsQuery();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ListingStatus | "ALL">("ALL");
@@ -237,12 +248,12 @@ export function AdminProducts() {
   }, [products, query, status]);
 
   const cards = [
-    ["Total products", String(totals.total)],
-    ["Available", String(totals.available)],
-    ["Unavailable", String(totals.unavailable)],
-    ["Suppliers", String(totals.suppliers)],
-    ["Aggregators", String(totals.aggregators)],
-    ["Listed value", formatRwf(totals.value)],
+    [t("totalProducts"), String(totals.total)],
+    [t("availableCount"), String(totals.available)],
+    [t("unavailableCount"), String(totals.unavailable)],
+    [t("suppliersCount"), String(totals.suppliers)],
+    [t("aggregatorsCount"), String(totals.aggregators)],
+    [t("listedValue"), formatRwf(totals.value)],
   ];
 
   return (
@@ -266,10 +277,10 @@ export function AdminProducts() {
       <section className="rounded-1.75 border border-soko-line bg-white p-5 shadow-[0_1px_2px_rgba(13,27,42,0.04)]">
         <div className="mb-4">
           <h2 className="m-0 mb-0.5 font-display text-[1rem] font-bold tracking-tight text-soko-ink">
-            All products
+            {t("allProducts")}
           </h2>
           <p className="m-0 text-[0.6875rem] text-soko-muted">
-            Open a listing to see the seller, price, and location.
+            {t("allProductsDescription")}
           </p>
         </div>
 
@@ -283,7 +294,7 @@ export function AdminProducts() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search product, seller, or location"
+                placeholder={t("searchPlaceholder")}
                 className="block w-full rounded-1.25 border border-soko-line bg-white px-3 py-2 text-xs outline-soko-navy"
                 aria-label="Search products"
               />
@@ -295,9 +306,9 @@ export function AdminProducts() {
                 className="rounded-1.25 border border-soko-line bg-white px-3 py-2 text-xs outline-soko-navy sm:w-44"
                 aria-label="Filter by status"
               >
-                <option value="ALL">All statuses</option>
-                <option value="AVAILABLE">Available</option>
-                <option value="UNAVAILABLE">Unavailable</option>
+                <option value="ALL">{t("allStatuses")}</option>
+                <option value="AVAILABLE">{t("available")}</option>
+                <option value="UNAVAILABLE">{t("unavailable")}</option>
               </select>
             </div>
 
@@ -314,14 +325,14 @@ export function AdminProducts() {
                 <table className="w-full min-w-[40rem] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-soko-line text-[0.5625rem] tracking-wide text-soko-muted uppercase">
-                      <th className="px-2 py-2.5 font-bold">Listed</th>
-                      <th className="px-2 py-2.5 font-bold">Product</th>
-                      <th className="px-2 py-2.5 font-bold">Status</th>
-                      <th className="px-2 py-2.5 font-bold">Seller</th>
-                      <th className="px-2 py-2.5 font-bold">Quantity</th>
-                      <th className="px-2 py-2.5 font-bold">Value</th>
+                      <th className="px-2 py-2.5 font-bold">{t("listed")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("product")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("status")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("seller")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("quantity")}</th>
+                      <th className="px-2 py-2.5 font-bold">{t("value")}</th>
                       <th className="px-2 py-2.5 text-right font-bold">
-                        <span className="sr-only">View</span>
+                        <span className="sr-only">{t("view")}</span>
                       </th>
                     </tr>
                   </thead>
@@ -345,7 +356,11 @@ export function AdminProducts() {
                           {product.owner?.name || "—"}
                           {product.owner?.role ? (
                             <span className="mt-0.5 block text-[0.5625rem] text-soko-muted capitalize">
-                              {product.owner.role}
+                              {product.owner.role === "supplier"
+                                ? t("supplier")
+                                : product.owner.role === "aggregator"
+                                  ? t("aggregator")
+                                  : product.owner.role}
                             </span>
                           ) : null}
                         </td>

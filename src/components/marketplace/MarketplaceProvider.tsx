@@ -3,39 +3,40 @@
 import {
   createContext,
   useContext,
-  useEffect,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import {
   getMarketplaceState,
+  getServerMarketplaceState,
   MARKETPLACE_STORAGE_KEY,
   reloadMarketplaceFromStorage,
-  seedMarketplace,
   subscribeMarketplace,
 } from "@/lib/marketplaceStore";
 import type { MarketplaceState } from "@/lib/marketplaceTypes";
 
 const MarketplaceContext = createContext<MarketplaceState | null>(null);
 
-export function MarketplaceProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<MarketplaceState>(() =>
-    typeof window === "undefined" ? seedMarketplace() : getMarketplaceState()
-  );
+function subscribe(onStoreChange: () => void) {
+  const unsub = subscribeMarketplace(onStoreChange);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key !== MARKETPLACE_STORAGE_KEY) return;
+    reloadMarketplaceFromStorage();
+    onStoreChange();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    unsub();
+    window.removeEventListener("storage", onStorage);
+  };
+}
 
-  useEffect(() => {
-    setState(getMarketplaceState());
-    const unsub = subscribeMarketplace(() => setState(getMarketplaceState()));
-    const onStorage = (event: StorageEvent) => {
-      if (event.key !== MARKETPLACE_STORAGE_KEY) return;
-      setState(reloadMarketplaceFromStorage());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => {
-      unsub();
-      window.removeEventListener("storage", onStorage);
-    };
-  }, []);
+export function MarketplaceProvider({ children }: { children: ReactNode }) {
+  const state = useSyncExternalStore(
+    subscribe,
+    getMarketplaceState,
+    getServerMarketplaceState
+  );
 
   return (
     <MarketplaceContext.Provider value={state}>

@@ -1,0 +1,24 @@
+{
+  "title": "Soko workspace",
+  "overview": "Overview",
+  "workspace": "Workspace",
+  "verifiedAccount": "Verified account",
+  "roles": {
+    "buyer": "Buyer",
+    "supplier": "Supplier",
+    "aggregator": "Aggregator",
+    "logistics": "Logistics",
+    "admin": "Operations"
+  },
+  "platformAdmin": "Platform Admin",
+  "platformAdminInitials": "PA",
+  "greeting": "Good morning, Platform Admin.",
+  "activityDescription": "Live catalog and deal activity from the marketplace.",
+  "browseProducts": "Browse Products",
+  "dateFormat": "EEEE d MMMM",
+  "publicMarketplace": "Public Marketplace",
+  "logout": "Logout",
+  "goodMorningNamed": "Good morning, {{name}}.",
+  "buySellDescription": "Buy listings or sell into open requests.",
+  "listForSale": "List For Sale"
+}

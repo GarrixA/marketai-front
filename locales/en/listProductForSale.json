@@ -1,0 +1,27 @@
+{
+  "title": "List product for sale",
+  "description": "Mark availability and where buyers can find this product.",
+  "grade": "Grade",
+  "grades": {
+    "large": "Large",
+    "medium": "Medium",
+    "small": "Small",
+    "mixed": "Mixed",
+    "organicLarge": "Organic Large",
+    "freeRange": "Free Range"
+  },
+  "priceRwf": "Price (RWF)",
+  "unit": "Unit",
+  "units": {
+    "tray": "Tray",
+    "piece": "Piece"
+  },
+  "availableQuantity": "Available Quantity",
+  "minimumQuantity": "Minimum Quantity",
+  "descriptionLabel": "Description",
+  "markAsAvailable": "Mark As Available",
+  "useProfileDeliveryLocation": "Use my profile / delivery location",
+  "locationExample": "Location Example",
+  "submit": "Submit",
+  "listForSale": "List For Sale"
+}
