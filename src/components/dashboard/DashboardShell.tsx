@@ -45,6 +45,7 @@ type TranslateFn = (key: string, query?: Record<string, unknown>) => string;
 const SECTION_TITLE_KEY: Partial<Record<DashboardSection, string>> = {
   Overview: "workspace:overview",
   Market: "market:title",
+  Source: "navigation:source",
   Products: "products:title",
   "Sell Offers": "sellOffers:title",
   "Buy Requests": "buyRequests:title",
@@ -470,14 +471,11 @@ export function DashboardShell({
 
   const onPrimary = () => {
     if (canRecord) {
-      if (active !== "Products") {
-        router.push(pathForSection("Products"));
-      }
       setStockOpen(true);
       return;
     }
     if (role === "logistics") router.push(pathForSection("Transport"));
-    else router.push(pathForSection("Products"));
+    else router.push(pathForSection("Market"));
   };
 
   return (
@@ -547,40 +545,44 @@ export function DashboardShell({
                         ? role === "aggregator"
                           ? "Buy and sell from one workspace — market, payments, and transport."
                           : t("workspace:activityDescription")
-                        : active === "Products" && role === "admin"
-                          ? t("products:description")
-                          : active === "Products"
-                            ? role === "aggregator"
-                              ? "Manage your products, then buy or sell on the market."
-                              : role === "supplier"
-                                ? "Create and manage your products — availability and location included."
-                                : "Buy eggs from suppliers and aggregators."
-                            : active === "Market"
+                        : active === "Source"
+                          ? role === "supplier"
+                            ? t("market:description")
+                            : t("market:buySellDescription")
+                          : active === "Products" && role === "admin"
+                            ? t("products:description")
+                            : active === "Products"
                               ? role === "aggregator"
-                                ? t("workspace:buySellDescription")
+                                ? "Manage your products, then buy or sell on the market."
                                 : role === "supplier"
-                                  ? t("market:description")
-                                  : "Listings you can buy."
-                              : active === "Sell Offers"
-                                ? t("sellOffers:description")
-                                : active === "Deals" && role === "admin"
-                                  ? t("deals:description")
-                                  : active === "Users"
-                                    ? t("users:pageDescription")
-                                    : active === "Support"
-                                      ? t("support:description")
-                                      : active === "Orders" &&
-                                          role === "aggregator"
-                                        ? "Orders for products you sold, and purchases you made."
-                                        : active === "Transport"
-                                          ? t(
-                                              "logisticsDashboard:transportDescription"
-                                            )
-                                          : active === "Income"
+                                  ? "Create and manage your products — availability and location included."
+                                  : "Buy eggs from suppliers and aggregators."
+                              : active === "Market"
+                                ? role === "aggregator"
+                                  ? t("workspace:buySellDescription")
+                                  : role === "supplier"
+                                    ? t("market:description")
+                                    : "Listings you can buy."
+                                : active === "Sell Offers"
+                                  ? t("sellOffers:description")
+                                  : active === "Deals" && role === "admin"
+                                    ? t("deals:description")
+                                    : active === "Users"
+                                      ? t("users:pageDescription")
+                                      : active === "Support"
+                                        ? t("support:description")
+                                        : active === "Orders" &&
+                                            role === "aggregator"
+                                          ? "Orders for products you sold, and purchases you made."
+                                          : active === "Transport"
                                             ? t(
-                                                "logisticsDashboard:incomeDescription"
+                                                "logisticsDashboard:transportDescription"
                                               )
-                                            : `Manage ${(active ?? "workspace").toLowerCase()} for the demo marketplace.`}
+                                            : active === "Income"
+                                              ? t(
+                                                  "logisticsDashboard:incomeDescription"
+                                                )
+                                              : `Manage ${(active ?? "workspace").toLowerCase()} for the demo marketplace.`}
                 </span>
               </div>
               {!utilityPage && active !== "Users" ? (

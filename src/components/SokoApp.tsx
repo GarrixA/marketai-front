@@ -1,37 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import useTranslation from "next-translate/useTranslation";
-import { Icon, PublicNav, SearchBar, SiteFooter, btn } from "@/lib/ui";
+import { Icon, PublicNav, SiteFooter, btn } from "@/lib/ui";
 import { ClaimRoleModal } from "@/components/ClaimRoleModal";
 import { LoginModal } from "@/components/LoginModal";
 import { RegisterModal } from "@/components/RegisterModal";
 import { MarketplaceProvider } from "@/components/marketplace/MarketplaceProvider";
-import { SellerOfferCard } from "@/components/marketplace/SellerOfferCard";
+import { MarketBoard } from "@/components/marketplace/MarketBoard";
 import {
   marketplaceProductsToListings,
   type ProductListing,
 } from "@/lib/listings";
-import {
-  groupProductsBySeller,
-  sellersMatchingProducts,
-} from "@/lib/sellerOffers";
-import {
-  EMPTY_SEARCH_FILTERS,
-  hasActiveSearchFilters,
-  searchListings,
-  type ListingSearchFilters,
-} from "@/lib/searchListings";
 import { productImageSrc } from "@/lib/productImage";
-import { setSession, type UserSession } from "@/lib/session";
+import {
+  getSessionSnapshot,
+  setSession,
+  subscribeSession,
+  type UserSession,
+} from "@/lib/session";
 import { useListAvailableProductsQuery } from "@/store/actions/products";
 
 const photos = {
   hero: "/soko-eggs-hero.jpg",
 };
-
-const PAGE_SIZE = 6;
 
 const sectionKicker =
   "text-[0.6875rem] font-extrabold tracking-[0.1375rem] text-soko-green-2 uppercase";
@@ -47,37 +41,16 @@ function Marketplace({
   const { t: tHero } = useTranslation("hero");
   const { t: tPulse } = useTranslation("marketPulse");
   const { t: tSuppliers } = useTranslation("suppliers");
-  const { data: products = [], isLoading: productsLoading } =
-    useListAvailableProductsQuery();
+  const session = useSyncExternalStore(
+    subscribeSession,
+    getSessionSnapshot,
+    () => null
+  );
+  const { data: products = [] } = useListAvailableProductsQuery();
   const listings = useMemo(
     () => marketplaceProductsToListings(products),
     [products]
   );
-  const sellers = useMemo(() => groupProductsBySeller(products), [products]);
-  const [filters, setFilters] =
-    useState<ListingSearchFilters>(EMPTY_SEARCH_FILTERS);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [pagedFilters, setPagedFilters] = useState(filters);
-
-  if (pagedFilters !== filters) {
-    setPagedFilters(filters);
-    setVisibleCount(PAGE_SIZE);
-  }
-
-  const filteredListings = useMemo(
-    () => searchListings(listings, filters),
-    [listings, filters]
-  );
-  const filteredSellers = useMemo(() => {
-    if (!hasActiveSearchFilters(filters)) return sellers;
-    const matchedIds = new Set(
-      filteredListings.map((item) => item.id).filter(Boolean)
-    );
-    const matchedProducts = products.filter((product) =>
-      matchedIds.has(product.id)
-    );
-    return sellersMatchingProducts(sellers, matchedProducts);
-  }, [filters, filteredListings, products, sellers]);
 
   const totalTrays = products.reduce(
     (sum, item) => sum + (item.availableQuantity || 0),
@@ -86,10 +59,7 @@ function Marketplace({
   const sellerCount = new Set(
     products.map((item) => item.ownerId).filter(Boolean)
   ).size;
-
-  const visibleSellers = filteredSellers.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredSellers.length;
-  const searching = hasActiveSearchFilters(filters);
+  const role = session?.role ?? null;
 
   return (
     <div>
@@ -148,6 +118,11 @@ function Marketplace({
                   {tHero("trackedDelivery")}
                 </span>
               </div>
+              <div className="mt-8">
+                <Link href="/source" className={btn.buyCompact}>
+                  {tSuppliers("browseSource")} <Icon name="arrow" size={16} />
+                </Link>
+              </div>
             </div>
             <div className="w-82.5 shrink-0 rounded-lg border border-soko-line bg-white p-5 text-soko-ink shadow-lg max-md:hidden">
               <div className="flex justify-between text-[0.625rem] font-extrabold tracking-[0.10625rem] text-soko-muted uppercase">
@@ -203,100 +178,20 @@ function Marketplace({
           </div>
         </section>
 
-        <div className="sticky top-19 z-40">
-          <div className="mx-auto max-w-298">
-            <SearchBar
-              value={filters}
-              onChange={setFilters}
-              onSearch={setFilters}
-            />
-          </div>
-        </div>
-
         <div className="relative z-2 bg-soko-slate">
           <section
             className="mx-auto max-w-310 px-6 pt-14 pb-22.5 max-md:pt-12 max-sm:pt-10"
             id="marketplace"
           >
-            <div className="mb-7.5 flex items-end justify-between gap-4 max-sm:flex-col max-sm:items-start">
-              <div>
-                <span className={sectionKicker}>
-                  {tSuppliers("sectionEyebrow")}
-                </span>
-                <h2 className="my-2 font-display text-4xl leading-tight font-bold tracking-[-0.09375rem] text-soko-ink">
-                  {searching ? "Matching sellers" : tSuppliers("sectionTitle")}
-                </h2>
-                <p className="m-0 text-soko-muted">
-                  {searching
-                    ? `${filteredSellers.length} seller${filteredSellers.length === 1 ? "" : "s"} with stock that matches.`
-                    : tSuppliers("sectionDescription")}
-                </p>
-              </div>
-              {searching && (
-                <button
-                  type="button"
-                  className={`${btn.text} px-0 text-soko-navy`}
-                  onClick={() => setFilters(EMPTY_SEARCH_FILTERS)}
-                >
-                  Clear search
-                </button>
-              )}
+            <div className="mb-5 flex justify-end">
+              <Link
+                href="/source"
+                className={`${btn.text} px-0 text-soko-navy`}
+              >
+                {tSuppliers("browseSource")} <Icon name="arrow" size={16} />
+              </Link>
             </div>
-            {productsLoading ? (
-              <div className="rounded-lg border border-soko-line bg-white px-6 py-16 text-center text-sm text-soko-muted">
-                Loading available products…
-              </div>
-            ) : filteredSellers.length === 0 ? (
-              <div className="rounded-lg border border-soko-line bg-white px-6 py-16 text-center">
-                <h3 className="font-display text-xl font-bold">
-                  {searching ? "No sellers matched" : "No products available"}
-                </h3>
-                <p className="mx-auto mt-2 max-w-105 text-sm text-soko-muted">
-                  {searching
-                    ? "Try a broader product name, another district, or clear one of the filters."
-                    : "Sellers haven’t listed available stock yet. Check back soon."}
-                </p>
-                {searching ? (
-                  <button
-                    type="button"
-                    className={`${btn.outline} mt-5`}
-                    onClick={() => setFilters(EMPTY_SEARCH_FILTERS)}
-                  >
-                    Reset filters
-                  </button>
-                ) : null}
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-3 gap-5 max-lg:grid-cols-2 max-md:grid-cols-1">
-                  {visibleSellers.map((seller) => (
-                    <SellerOfferCard key={seller.id} seller={seller} />
-                  ))}
-                </div>
-                <div className="mt-8 flex flex-col items-center gap-3 border border-soko-line bg-white px-5 py-5 text-[0.6875rem] text-soko-muted">
-                  <span className="flex items-center gap-1.5">
-                    <Icon name="check" />
-                    {tSuppliers("showingSellers", {
-                      shown: visibleSellers.length,
-                      total: filteredSellers.length,
-                    })}
-                  </span>
-                  {hasMore && (
-                    <button
-                      type="button"
-                      className={btn.outline}
-                      onClick={() =>
-                        setVisibleCount((count) =>
-                          Math.min(count + PAGE_SIZE, filteredSellers.length)
-                        )
-                      }
-                    >
-                      {tSuppliers("loadMore")} <Icon name="arrow" size={16} />
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
+            <MarketBoard role={role} />
           </section>
         </div>
       </main>

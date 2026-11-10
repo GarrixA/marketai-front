@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import useTranslation from "next-translate/useTranslation";
 import { ActionButton, ActionToggle, Icon } from "@/lib/ui";
 import { EmptyState } from "@/components/marketplace/uiBits";
+import { ProductCardGridSkeleton } from "@/components/marketplace/MarketplaceSkeletons";
 import { BuyQtyModal } from "@/components/marketplace/ProductMarketPanel";
 import { ConfirmDealForm } from "@/components/marketplace/ConfirmDealForm";
 import {
@@ -96,13 +98,24 @@ function MarketCard({
   );
 }
 
-export function MarketBoard({ role }: { role: DashboardRole }) {
+export function MarketBoard({
+  role,
+}: {
+  /** `null` = guest browsing (buy listings only). */
+  role: DashboardRole | null;
+}) {
   const { t } = useTranslation("common");
+  const router = useRouter();
   const session = getSession();
   const { dialog, showError, showSuccess } = useAppDialog();
   const [createDeal] = useCreateDealMutation();
-  const canBuy = role === "buyer" || role === "aggregator";
+  const canBuy =
+    role === null ||
+    role === "buyer" ||
+    role === "supplier" ||
+    role === "aggregator";
   const canSell = role === "supplier" || role === "aggregator";
+  const showToggle = role === "aggregator" || role === "supplier";
   const { data: sellRequests = [], isLoading } = useListSellRequestsQuery(
     { excludeOwn: true },
     { skip: !canBuy }
@@ -122,8 +135,8 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
   const [buying, setBuying] = useState<MarketplaceProduct | null>(null);
   const [selling, setSelling] = useState<Deal | null>(null);
   const [tradeResult, setTradeResult] = useState<TradeResult | null>(null);
-  const showingBuy = role === "aggregator" ? marketTab === "buy" : canBuy;
-  const showingSell = role === "aggregator" ? marketTab === "sell" : canSell;
+  const showingBuy = showToggle ? marketTab === "buy" : canBuy;
+  const showingSell = showToggle ? marketTab === "sell" : canSell;
 
   const listings = useMemo(
     () =>
@@ -151,7 +164,7 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
     <div className="space-y-8">
       {dialog}
 
-      {role === "aggregator" ? (
+      {showToggle ? (
         <ActionToggle
           value={marketTab}
           onChange={setMarketTab}
@@ -175,7 +188,7 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
       {showingBuy ? (
         <section className="space-y-3">
           {isLoading ? (
-            <EmptyState message={t("loadingListings")} />
+            <ProductCardGridSkeleton />
           ) : listings.length === 0 ? (
             <EmptyState message={t("noListingsYet")} />
           ) : (
@@ -216,7 +229,14 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
                     <ActionButton
                       variant="buy"
                       size="sm"
-                      onClick={() => setBuying(product)}
+                      fullWidth
+                      onClick={() => {
+                        if (!session) {
+                          router.push("/?auth=login");
+                          return;
+                        }
+                        setBuying(product);
+                      }}
                     >
                       {t("buy")}
                     </ActionButton>
@@ -231,7 +251,7 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
       {showingSell ? (
         <section className="space-y-3">
           {requestsLoading ? (
-            <EmptyState message={t("loadingBuyRequests")} />
+            <ProductCardGridSkeleton />
           ) : requests.length === 0 ? (
             <EmptyState message={t("noOpenBuyRequests")} />
           ) : (
@@ -268,6 +288,7 @@ export function MarketBoard({ role }: { role: DashboardRole }) {
                       <ActionButton
                         variant="sell"
                         size="sm"
+                        fullWidth
                         onClick={() => setSelling(deal)}
                       >
                         {t("sell")}

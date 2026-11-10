@@ -34,5 +34,7 @@
   "noListingsYet": "No listings yet.",
   "loadingBuyRequests": "Loading buy requests…",
   "noOpenBuyRequests": "No open buy requests yet.",
-  "viewListing": "View listing"
+  "viewListing": "View listing",
+  "loginRequired": "Sign in required",
+  "signInToBuy": "Sign in to buy this listing."
 }

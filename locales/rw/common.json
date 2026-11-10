@@ -34,5 +34,7 @@
   "noListingsYet": "Nta matangazo arahari.",
   "loadingBuyRequests": "Birimo gupakurura ubusabe bwo kugura…",
   "noOpenBuyRequests": "Nta busabe bwo kugura bufunguye.",
-  "viewListing": "Reba itangazo"
+  "viewListing": "Reba itangazo",
+  "loginRequired": "Kwiyandikisha birakenewe",
+  "signInToBuy": "Injira kugira ngo ugure iki gitangazo."
 }
