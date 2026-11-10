@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ListingDetail } from "@/components/SokoApp";
 import { SellerProfileView } from "@/components/marketplace/SellerCatalogDialog";
+import { SellerProfileSkeleton } from "@/components/marketplace/MarketplaceSkeletons";
 import { BuyQtyModal } from "@/components/marketplace/ProductMarketPanel";
 import {
   TradeResultModal,
@@ -116,8 +117,8 @@ export function SellerStockPage({
       />
       <main className="mx-auto max-w-220 px-4 py-8 sm:px-6">
         <div className="mb-5 flex flex-wrap items-center gap-4 text-sm">
-          <Link href="/" className={`${btn.text} px-0 text-soko-navy`}>
-            Marketplace
+          <Link href="/source" className={`${btn.text} px-0 text-soko-navy`}>
+            Source
           </Link>
           {session ? (
             <Link
@@ -130,9 +131,7 @@ export function SellerStockPage({
         </div>
 
         {isLoading ? (
-          <div className="rounded-2xl border border-soko-line bg-white px-6 py-16 text-center text-sm text-soko-muted">
-            Loading seller…
-          </div>
+          <SellerProfileSkeleton />
         ) : isError || !seller ? (
           <div className="rounded-2xl border border-soko-line bg-white px-6 py-16 text-center">
             <h1 className="font-display text-2xl font-bold">
@@ -142,8 +141,8 @@ export function SellerStockPage({
               This supplier or aggregator link does not match a seller with a
               public profile.
             </p>
-            <Link href="/" className={`${btn.outline} mt-5`}>
-              Back to marketplace <Icon name="arrow" size={16} />
+            <Link href="/source" className={`${btn.outline} mt-5`}>
+              Back to source <Icon name="arrow" size={16} />
             </Link>
           </div>
         ) : (

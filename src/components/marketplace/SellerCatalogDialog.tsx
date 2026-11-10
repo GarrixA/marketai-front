@@ -1,12 +1,11 @@
 "use client";
 
-import { Icon } from "@/components/Icon";
+import { ActionButton, Icon, btn } from "@/lib/ui";
 import { UserAvatar } from "@/components/UserAvatar";
 import { VerifiedBadge } from "@/components/marketplace/VerifiedBadge";
 import { formatRwandaLocation } from "@/components/forms/RwandaLocationFields";
 import { productImageSrc } from "@/lib/productImage";
 import { roleLabel, type SellerOffer } from "@/lib/sellerOffers";
-import { btn } from "@/lib/ui";
 import type { MarketplaceProduct } from "@/types/product";
 
 function plural(unit: string, count: number) {
@@ -25,6 +24,7 @@ export function SellerProfileView({
   actionLabel?: string;
 }) {
   const role = roleLabel(seller.role);
+  const isBuy = actionLabel.toLowerCase() === "buy";
 
   return (
     <div className="overflow-hidden rounded-2xl border border-soko-line bg-soko-slate">
@@ -90,55 +90,91 @@ export function SellerProfileView({
         <p className="mb-3 text-xs font-bold tracking-wide text-soko-muted uppercase">
           {seller.listingCount} listing{seller.listingCount === 1 ? "" : "s"}
         </p>
-        <ul className="grid gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
           {seller.products.map((product) => {
             const unit = product.unit.toLowerCase();
             const price = Number(product.price) || 0;
+            const location = formatRwandaLocation(product.location);
             return (
-              <li
+              <article
                 key={product.id}
-                className="flex flex-col gap-3 rounded-xl border border-soko-line bg-white p-3 sm:flex-row sm:items-center"
+                className="flex h-full flex-col overflow-hidden rounded-1.75 border border-soko-line bg-white"
               >
                 <img
                   src={productImageSrc(product.imageUrl)}
-                  alt=""
-                  className="h-20 w-full rounded-lg object-cover object-[center_46%] sm:h-16 sm:w-24 sm:shrink-0"
+                  alt={product.name}
+                  className="h-36 w-full object-cover object-[center_46%]"
                 />
-                <div className="min-w-0 flex-1">
-                  <strong className="block truncate text-sm text-soko-ink">
-                    {product.name}
-                    {product.grade ? ` · ${product.grade}` : ""}
-                  </strong>
-                  <p className="mt-1 text-xs text-soko-muted">
-                    {product.availableQuantity.toLocaleString("en-RW")}{" "}
-                    {plural(unit, product.availableQuantity)} available
+                <div className="flex flex-1 flex-col px-3 py-3.5 sm:px-4.5 sm:py-4">
+                  <div className="mb-3 flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <strong className="block truncate text-[0.8125rem] sm:text-[0.875rem]">
+                        {product.name}
+                      </strong>
+                      <small className="text-[0.5625rem] text-soko-muted sm:text-[0.625rem]">
+                        {[
+                          product.category?.name ?? "Uncategorized",
+                          product.grade,
+                          product.size,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </small>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-[#dcfce7] px-2 py-0.75 text-[0.5rem] font-bold tracking-wide text-[#16a34a] uppercase">
+                      {product.sellMode === "LOT" ? "Whole lot" : "By unit"}
+                    </span>
+                  </div>
+
+                  <p className="m-0 mb-1 font-display text-[1.0625rem] font-bold sm:text-[1.125rem]">
+                    {price > 0 ? (
+                      <>
+                        {price.toLocaleString("en-RW")}{" "}
+                        <span className="text-[0.75rem] font-semibold text-soko-muted">
+                          RWF / {unit}
+                        </span>
+                      </>
+                    ) : (
+                      "Ask seller"
+                    )}
+                  </p>
+                  <p className="m-0 mb-1 text-[0.625rem] text-soko-ink sm:text-[0.6875rem]">
+                    {product.sellMode === "LOT"
+                      ? `Lot of ${product.availableQuantity.toLocaleString("en-RW")} ${plural(unit, product.availableQuantity)}`
+                      : `${product.availableQuantity.toLocaleString("en-RW")} ${plural(unit, product.availableQuantity)} available`}
                     {(product.minQuantity ?? 1) > 1
                       ? ` · min ${product.minQuantity}`
                       : ""}
                   </p>
-                  <p className="mt-1 flex items-center gap-1 text-[0.6875rem] text-soko-muted">
-                    <Icon name="pin" size={12} />
-                    {formatRwandaLocation(product.location)}
+                  <p className="m-0 mb-3 line-clamp-2 flex items-start gap-1 text-[0.5625rem] text-soko-muted sm:text-[0.625rem]">
+                    <Icon name="pin" size={13} className="mt-0.5 shrink-0" />
+                    <span>{location}</span>
                   </p>
+                  <div className="mt-auto">
+                    {isBuy ? (
+                      <ActionButton
+                        variant="buy"
+                        size="sm"
+                        fullWidth
+                        onClick={() => onSelect(product)}
+                      >
+                        {actionLabel}
+                      </ActionButton>
+                    ) : (
+                      <button
+                        type="button"
+                        className={`${btn.outline} w-full justify-center py-2 text-xs`}
+                        onClick={() => onSelect(product)}
+                      >
+                        {actionLabel}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end">
-                  <strong className="font-display text-sm font-extrabold text-soko-ink">
-                    {price > 0
-                      ? `RWF ${price.toLocaleString("en-RW")} / ${unit}`
-                      : "Ask seller"}
-                  </strong>
-                  <button
-                    type="button"
-                    className={`${btn.outline} py-2 text-xs`}
-                    onClick={() => onSelect(product)}
-                  >
-                    {actionLabel}
-                  </button>
-                </div>
-              </li>
+              </article>
             );
           })}
-        </ul>
+        </div>
       </div>
     </div>
   );

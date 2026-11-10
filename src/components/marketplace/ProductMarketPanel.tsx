@@ -33,6 +33,10 @@ import {
   sellersMatchingProducts,
 } from "@/lib/sellerOffers";
 import { SellerOfferCard } from "@/components/marketplace/SellerOfferCard";
+import {
+  ProductCardGridSkeleton,
+  SellerOfferGridSkeleton,
+} from "@/components/marketplace/MarketplaceSkeletons";
 // import { validateCoordinatesAgainstAddress } from "@/lib/validateRwandaCoordinates";
 import { useCreateDealMutation } from "@/store/actions/deals";
 import { CoordinateMismatchDialog } from "@/components/support/CoordinateMismatchDialog";
@@ -575,13 +579,35 @@ export function BuyQtyModal({
   );
 }
 
-export function ProductMarketPanel({ role }: { role: DashboardRole }) {
+export function ProductMarketPanel({
+  role,
+  initialMode,
+  showToolbar = true,
+  showStockSummary = true,
+  showModeToggle = true,
+}: {
+  /** `null` = guest browsing the public source page (buy only). */
+  role: DashboardRole | null;
+  /** Override the default tab (e.g. public `/source` opens on Buy). */
+  initialMode?: MarketMode;
+  /** Hide search/filters for a cleaner public source browse. */
+  showToolbar?: boolean;
+  /** Hide egg-type stock summary cards above the buy/sell controls. */
+  showStockSummary?: boolean;
+  /** Hide Buy/Sell segmented control (e.g. public `/source`). */
+  showModeToggle?: boolean;
+}) {
   const { t } = useTranslation("market");
   const { t: tCommon } = useTranslation("common");
   const session = getSession();
   const { dialog, showError, showSuccess, confirm } = useAppDialog();
   const canManage = role === "supplier" || role === "aggregator";
-  const canBuy = role === "buyer" || role === "aggregator" || role === "admin";
+  const canBuy =
+    role === null ||
+    role === "buyer" ||
+    role === "supplier" ||
+    role === "aggregator" ||
+    role === "admin";
 
   const { data: myProducts = [], isLoading: myProductsLoading } =
     useListMyProductsQuery(undefined, {
@@ -597,7 +623,8 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
   const [createDeal] = useCreateDealMutation();
 
   const defaultMode: MarketMode =
-    role === "supplier" || role === "aggregator" ? "sell" : "buy";
+    initialMode ??
+    (role === "supplier" || role === "aggregator" ? "sell" : "buy");
   const [mode, setMode] = useState<MarketMode>(defaultMode);
   const [gradeFilter, setGradeFilter] = useState("All");
   const [query, setQuery] = useState("");
@@ -608,12 +635,15 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
   const [buying, setBuying] = useState<MarketplaceProduct | null>(null);
   const [tradeResult, setTradeResult] = useState<TradeResult | null>(null);
 
-  const showToggle = role === "aggregator";
+  const showToggle =
+    showModeToggle && (role === "aggregator" || role === "supplier");
   const activeMode: MarketMode = showToggle
     ? mode
-    : role === "supplier"
-      ? "sell"
-      : "buy";
+    : initialMode === "buy"
+      ? "buy"
+      : canManage
+        ? "sell"
+        : "buy";
 
   const buyList = useMemo(() => {
     let rows = availableProducts.filter(
@@ -717,7 +747,7 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
   return (
     <div className="space-y-4">
       {dialog}
-      {canManage && eggTypes.length > 0 ? (
+      {showStockSummary && canManage && eggTypes.length > 0 ? (
         <div className="grid grid-cols-4 gap-3.25 max-lg:grid-cols-2 max-sm:grid-cols-1">
           {eggTypes.map((group) => (
             <EggTypeStockCard
@@ -730,74 +760,80 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
           ))}
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center gap-3">
-        {showToggle ? (
-          <ActionToggle
-            value={mode}
-            onChange={setMode}
-            options={[
-              {
-                value: "buy",
-                label: t("buyTab"),
-                icon: "cart",
-                activeVariant: "buy",
-              },
-              {
-                value: "sell",
-                label: t("sellTab"),
-                icon: "tag",
-                activeVariant: "sell",
-              },
-            ]}
+      {showToggle || showToolbar ? (
+        <div className="flex flex-wrap items-center gap-3">
+          {showToggle ? (
+            <ActionToggle
+              value={mode}
+              onChange={setMode}
+              options={[
+                {
+                  value: "buy",
+                  label: t("buyTab"),
+                  icon: "cart",
+                  activeVariant: "buy",
+                },
+                {
+                  value: "sell",
+                  label: t("sellTab"),
+                  icon: "tag",
+                  activeVariant: "sell",
+                },
+              ]}
+            />
+          ) : showToolbar ? (
+            <ActionButton
+              variant={role === "supplier" ? "sell" : "buy"}
+              size="sm"
+              shape="pill"
+              icon={role === "supplier" ? "tag" : "cart"}
+              className="pointer-events-none"
+              tabIndex={-1}
+            >
+              {role === "supplier" ? t("yourSellListings") : t("buyFromMarket")}
+            </ActionButton>
+          ) : null}
+
+          {showToolbar ? (
+            <span className="ml-auto rounded-full border border-soko-line bg-white px-3 py-1.5 text-[0.6875rem] font-bold">
+              RWF
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {showToolbar ? (
+        <div className="flex flex-wrap gap-2">
+          <input
+            className={`${fieldClass} max-w-55`}
+            placeholder={
+              activeMode === "sell"
+                ? "Search your products…"
+                : "Search seller, egg grade, location…"
+            }
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
           />
-        ) : (
-          <ActionButton
-            variant={role === "supplier" ? "sell" : "buy"}
-            size="sm"
-            shape="pill"
-            icon={role === "supplier" ? "tag" : "cart"}
-            className="pointer-events-none"
-            tabIndex={-1}
+          <select
+            className={fieldClass}
+            value={gradeFilter}
+            onChange={(e) => setGradeFilter(e.target.value)}
           >
-            {role === "supplier" ? t("yourSellListings") : t("buyFromMarket")}
-          </ActionButton>
-        )}
-
-        <span className="ml-auto rounded-full border border-soko-line bg-white px-3 py-1.5 text-[0.6875rem] font-bold">
-          RWF
-        </span>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <input
-          className={`${fieldClass} max-w-55`}
-          placeholder={
-            activeMode === "sell"
-              ? "Search your products…"
-              : "Search seller, egg grade, location…"
-          }
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <select
-          className={fieldClass}
-          value={gradeFilter}
-          onChange={(e) => setGradeFilter(e.target.value)}
-        >
-          {grades.map((g) => (
-            <option key={g} value={g}>
-              {g === "All" ? "All grades" : g}
-            </option>
-          ))}
-        </select>
-        <span className="self-center text-[0.625rem] text-soko-muted">
-          {listCount} {listNoun}
-        </span>
-      </div>
+            {grades.map((g) => (
+              <option key={g} value={g}>
+                {g === "All" ? "All grades" : g}
+              </option>
+            ))}
+          </select>
+          <span className="self-center text-[0.625rem] text-soko-muted">
+            {listCount} {listNoun}
+          </span>
+        </div>
+      ) : null}
 
       {activeMode === "sell" ? (
         myProductsLoading ? (
-          <EmptyState message="Loading your sell listings…" />
+          <ProductCardGridSkeleton />
         ) : sellList.length === 0 ? (
           <EmptyState message="No sell listings yet. Use List for sale to publish stock." />
         ) : (
@@ -816,11 +852,11 @@ export function ProductMarketPanel({ role }: { role: DashboardRole }) {
           </div>
         )
       ) : availableLoading ? (
-        <EmptyState message="Loading products to buy…" />
+        <SellerOfferGridSkeleton />
       ) : visibleSellers.length === 0 ? (
         <EmptyState message="No sellers with stock to buy right now." />
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-3 gap-5 max-lg:grid-cols-2 max-md:grid-cols-1">
           {visibleSellers.map((seller) => (
             <SellerOfferCard key={seller.id} seller={seller} />
           ))}
