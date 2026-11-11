@@ -21,7 +21,7 @@
   "buyerConfirms": "Buyer Confirms",
   "paidOut": "Paid Out",
   "delivered": "Delivered",
-  "deliveredFeeInIncome": "Delivered. Your fee {{amount}} is in Income.",
+  "deliveredFeeInIncome": "Delivered. Your fee {{amount}} is in Income after the 5% platform cut.",
   "askBuyerConfirmDelivery": "Ask buyer to confirm delivery",
   "income": "Income",
   "incomeDescription": "Delivery fees credited after a buyer confirms receipt.",

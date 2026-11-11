@@ -77,6 +77,8 @@ export type Deal = {
   transportOpenedAt?: string;
   logisticsName?: string;
   logisticsEmail?: string;
+  /** Assigned deliverer user id — preferred over email for “my deliveries”. */
+  logisticsUserId?: string;
   transportQuotes: TransportQuote[];
   acceptedQuoteId?: string;
   platformFee?: number;

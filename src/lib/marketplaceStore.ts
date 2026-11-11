@@ -382,24 +382,9 @@ export function payDeal(dealId: string) {
             paidAmount,
             paidAt: new Date().toISOString(),
             transportOpenedAt: new Date().toISOString(),
-          }
-        : d
-    ),
-  });
-}
-
-export function requestTransport(dealId: string, fee?: number) {
-  const state = readState();
-  writeState({
-    ...state,
-    deals: state.deals.map((d) =>
-      d.id === dealId && d.status === "paid"
-        ? {
-            ...d,
-            status: "transport_open",
-            transportOpenedAt: new Date().toISOString(),
-            transportOfferedFee: fee,
-            transportFee: fee,
+            // Real payments set the fee from a Pinza quote on the API.
+            transportOfferedFee: d.transportOfferedFee,
+            transportFee: d.transportFee,
           }
         : d
     ),

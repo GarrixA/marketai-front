@@ -15,7 +15,7 @@ export const btn = {
     "inline-flex w-full items-center justify-center gap-3 rounded-md border-0 bg-soko-navy px-5.5 py-3.5 font-bold text-white hover:bg-soko-navy-2",
   buy: "inline-flex items-center justify-center gap-3 rounded-md border-0 bg-[#22c55e] px-5.5 py-3.5 font-bold text-white hover:bg-[#16a34a]",
   buyCompact:
-    "inline-flex items-center justify-center gap-3 rounded-md border-0 bg-[#22c55e] px-4.25 py-2.75 text-sm font-bold text-white hover:bg-[#16a34a]",
+    "inline-flex items-center justify-center gap-3 rounded-md border-0 bg-[#22c55e] px-4.25 py-2.75 text-sm font-bold text-white hover:bg-[#16a34a] disabled:cursor-not-allowed disabled:bg-[#86efac] disabled:opacity-50 disabled:hover:bg-[#86efac]",
   buySm:
     "inline-flex min-w-18 items-center justify-center rounded-md border-0 bg-[#22c55e] px-4 py-2 text-[0.75rem] font-bold text-white hover:bg-[#16a34a]",
   buyFull:

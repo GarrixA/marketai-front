@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import type { PublicUser } from "@/types/auth";
 import { displayNameFromUser, resolveDashboardRole } from "@/lib/authRoles";
 import { clearMarketplaceStorage } from "@/lib/marketplaceStore";
@@ -69,17 +70,37 @@ export function patchSession(
 let sessionSnapshot: UserSession | null | undefined;
 
 export function subscribeSession(onStoreChange: () => void) {
+  // Warm from localStorage without notifying during subscribe (React forbids that).
+  sessionSnapshot = getSession();
   const sync = () => {
     sessionSnapshot = getSession();
     onStoreChange();
   };
   window.addEventListener("soko-session", sync);
-  return () => window.removeEventListener("soko-session", sync);
+  window.addEventListener("storage", sync);
+  return () => {
+    window.removeEventListener("soko-session", sync);
+    window.removeEventListener("storage", sync);
+  };
 }
 
 export function getSessionSnapshot(): UserSession | null {
   if (sessionSnapshot === undefined) sessionSnapshot = getSession();
   return sessionSnapshot;
+}
+
+/** False during SSR/hydration; true once the client store is live. */
+export function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+}
+
+/** Live workspace session. Null on the server and until client hydration finishes. */
+export function useSession() {
+  return useSyncExternalStore(subscribeSession, getSessionSnapshot, () => null);
 }
 
 export function getSession(): UserSession | null {

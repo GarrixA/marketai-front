@@ -8,10 +8,10 @@ import { createBuyFromListing, formatRwf } from "@/lib/marketplaceStore";
 import { waitForAction } from "@/lib/actionDelay";
 import { formatApiError } from "@/lib/apiError";
 import {
+  deliveryAddressToApiPayload,
   hasDeliveryAddress,
   profileHasDeliveryAddress,
 } from "@/lib/deliveryAddress";
-// import { validateCoordinatesAgainstAddress } from "@/lib/validateRwandaCoordinates";
 import { CoordinateMismatchDialog } from "@/components/support/CoordinateMismatchDialog";
 import {
   SupportTicketModal,
@@ -30,6 +30,7 @@ import {
 } from "@/components/marketplace/TradeResultModal";
 import { ActionOverlay, ButtonLoader } from "@/components/ActionLoader";
 import {
+  AddressValidationControls,
   DeliveryAddressFields,
   deliveryAddressFromLocation,
   emptyDeliveryAddress,
@@ -53,28 +54,7 @@ function initials(name: string) {
 }
 
 function toLocationPayload(address: DeliveryAddressValue) {
-  // const latitude = address.latitude?.trim()
-  //   ? Number(address.latitude)
-  //   : undefined;
-  // const longitude = address.longitude?.trim()
-  //   ? Number(address.longitude)
-  //   : undefined;
-  return {
-    province: address.province,
-    district: address.district,
-    sector: address.sector,
-    cell: address.cell,
-    village: address.village,
-    hood: address.hood?.trim() || undefined,
-    // latitude:
-    //   latitude !== undefined && Number.isFinite(latitude)
-    //     ? latitude
-    //     : undefined,
-    // longitude:
-    //   longitude !== undefined && Number.isFinite(longitude)
-    //     ? longitude
-    //     : undefined,
-  };
+  return deliveryAddressToApiPayload(address);
 }
 
 function BuyOfferModal({
@@ -102,6 +82,7 @@ function BuyOfferModal({
     emptyDeliveryAddress()
   );
   const [saveNewToProfile, setSaveNewToProfile] = useState(true);
+  const [addressValidated, setAddressValidated] = useState(false);
   const [mismatchOpen, setMismatchOpen] = useState(false);
   const [mismatchMessage] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
@@ -137,67 +118,6 @@ function BuyOfferModal({
     addressMode === "saved" && hasSaved
       ? deliveryAddressFromLocation(savedAddress)
       : newAddress;
-
-  const validateActiveCoordinates = async () => {
-    // Coordinates ignored for now.
-    return true;
-    // const lat = activeAddress.latitude?.trim()
-    //   ? Number(activeAddress.latitude)
-    //   : NaN;
-    // const lng = activeAddress.longitude?.trim()
-    //   ? Number(activeAddress.longitude)
-    //   : NaN;
-    // if (!Number.isFinite(lat) || !Number.isFinite(lng)) return true;
-    // if (!activeAddress.village?.trim()) return true;
-    //
-    // try {
-    //   const result = await validateCoordinatesAgainstAddress({
-    //     latitude: lat,
-    //     longitude: lng,
-    //     province: activeAddress.province,
-    //     district: activeAddress.district,
-    //     sector: activeAddress.sector,
-    //     cell: activeAddress.cell,
-    //     village: activeAddress.village,
-    //   });
-    //   if (result.ok) return true;
-    //   setMismatchMessage(
-    //     `${result.message} Fix the address, or request help from admin.`
-    //   );
-    //   setHelpPrefill({
-    //     category: "LOCATION_MISMATCH",
-    //     subject: "Delivery coordinates do not match selected village",
-    //     message:
-    //       "My GPS coordinates do not match the village I selected. Please help me correct my delivery address.",
-    //     context: {
-    //       summary: result.message,
-    //       selectedAddress: activeAddress,
-    //       lookup: result.lookup,
-    //       mismatches: result.mismatches,
-    //     },
-    //   });
-    //   setMismatchOpen(true);
-    //   return false;
-    // } catch {
-    //   setMismatchMessage(
-    //     "Village boundary lookup failed. Fix the address, or request help from admin."
-    //   );
-    //   setHelpPrefill({
-    //     category: "LOCATION_MISMATCH",
-    //     subject: "Could not verify delivery coordinates",
-    //     message:
-    //       "Village boundary lookup failed while checking my delivery coordinates. Please help me verify my address.",
-    //     context: {
-    //       summary: "Village boundary lookup failed.",
-    //       selectedAddress: activeAddress,
-    //       latitude: lat,
-    //       longitude: lng,
-    //     },
-    //   });
-    //   setMismatchOpen(true);
-    //   return false;
-    // }
-  };
 
   return (
     <div className="fixed inset-0 z-100 grid place-items-center overflow-y-auto bg-soko-navy/72 p-4 backdrop-blur-sm sm:p-6">
@@ -254,9 +174,19 @@ function BuyOfferModal({
               );
               return;
             }
-
-            const coordsOk = await validateActiveCoordinates();
-            if (!coordsOk) return;
+            if (!activeAddress.village?.trim()) {
+              await showError("Select a village for the delivery address.", {
+                title: "Village required",
+              });
+              return;
+            }
+            if (!addressValidated) {
+              await showError(
+                "Validate the address so coordinates match the selected village.",
+                { title: "Address not validated" }
+              );
+              return;
+            }
 
             setLoading(true);
             try {
@@ -304,7 +234,10 @@ function BuyOfferModal({
                   className="mt-0.5"
                   name="sell-delivery-mode"
                   checked={addressMode === "saved"}
-                  onChange={() => setAddressMode("saved")}
+                  onChange={() => {
+                    setAddressMode("saved");
+                    setAddressValidated(false);
+                  }}
                   disabled={loading}
                 />
                 <span>
@@ -320,7 +253,10 @@ function BuyOfferModal({
                   className="mt-0.5"
                   name="sell-delivery-mode"
                   checked={addressMode === "new"}
-                  onChange={() => setAddressMode("new")}
+                  onChange={() => {
+                    setAddressMode("new");
+                    setAddressValidated(false);
+                  }}
                   disabled={loading}
                 />
                 <span>
@@ -337,7 +273,10 @@ function BuyOfferModal({
             <div className="rounded-1.25 border border-soko-line p-3">
               <DeliveryAddressFields
                 value={newAddress}
-                onChange={setNewAddress}
+                onChange={(next) => {
+                  setAddressValidated(false);
+                  setNewAddress(next);
+                }}
                 disabled={loading}
                 required
               />
@@ -353,6 +292,17 @@ function BuyOfferModal({
             </div>
           ) : null}
 
+          <AddressValidationControls
+            address={activeAddress}
+            disabled={loading}
+            validated={addressValidated}
+            onValidatedChange={setAddressValidated}
+            onResolvedAddress={(patch) => {
+              setNewAddress({ ...activeAddress, ...patch });
+              setAddressMode("new");
+            }}
+          />
+
           <p className="m-0 text-[0.625rem] text-soko-muted">
             Estimated total{" "}
             <b className="text-soko-ink">
@@ -362,7 +312,13 @@ function BuyOfferModal({
           <button
             type="submit"
             className={`${btn.buyCompact} w-full sm:px-5.5 sm:py-3.5`}
-            disabled={loading || meLoading}
+            disabled={loading || meLoading || !addressValidated}
+            aria-disabled={loading || meLoading || !addressValidated}
+            title={
+              !addressValidated
+                ? "Validate the address before sending the request"
+                : undefined
+            }
           >
             {loading ? (
               <ButtonLoader label="Sending…" />
@@ -372,6 +328,11 @@ function BuyOfferModal({
               </>
             )}
           </button>
+          {!addressValidated ? (
+            <p className="m-0 text-center text-[0.6875rem] text-soko-muted">
+              Validate the address to enable Send Request.
+            </p>
+          ) : null}
         </form>
 
         <CoordinateMismatchDialog

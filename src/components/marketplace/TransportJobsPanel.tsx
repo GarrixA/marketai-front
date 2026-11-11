@@ -14,6 +14,7 @@ import {
 } from "@/components/marketplace/TransportActions";
 import {
   FulfillmentSteps,
+  RequestDeliveryConfirmationButton,
   isFulfillmentStatus,
 } from "@/components/marketplace/FulfillmentSteps";
 import {
@@ -25,6 +26,22 @@ import { getSession } from "@/lib/session";
 import type { Deal } from "@/lib/marketplaceTypes";
 
 const OPEN = new Set<Deal["status"]>(["transport_open", "transport_quoted"]);
+
+function isMyDelivery(deal: Deal, email?: string, userId?: string) {
+  if (userId && deal.logisticsUserId && deal.logisticsUserId === userId) {
+    return true;
+  }
+  if (email && deal.logisticsEmail && deal.logisticsEmail === email) {
+    return true;
+  }
+  if (
+    email &&
+    deal.transportQuotes.some((quote) => quote.logisticsEmail === email)
+  ) {
+    return true;
+  }
+  return false;
+}
 
 export function TransportJobsPanel() {
   const { t } = useTranslation("logisticsDashboard");
@@ -48,10 +65,7 @@ export function TransportJobsPanel() {
   const openJobs = jobs.filter((deal) => OPEN.has(deal.status));
   const mine = jobs.filter(
     (deal) =>
-      (deal.logisticsEmail === session?.email ||
-        deal.transportQuotes.some(
-          (quote) => quote.logisticsEmail === session?.email
-        )) &&
+      isMyDelivery(deal, session?.email, session?.userId) &&
       (isFulfillmentStatus(deal.status) || deal.status === "transport_quoted")
   );
 
@@ -80,30 +94,9 @@ export function TransportJobsPanel() {
         {mine.length === 0 ? (
           <EmptyState message="You have not taken a delivery yet." />
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {mine.map((deal) => (
-              <div
-                key={deal.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-1.25 border border-soko-line px-3.5 py-3"
-              >
-                <div>
-                  <strong className="block text-[0.8125rem]">
-                    {deal.product}
-                  </strong>
-                  <RouteLine deal={deal} />
-                  {isFulfillmentStatus(deal.status) ? (
-                    <FulfillmentSteps deal={deal} actor="logistics" />
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <b className="text-[0.75rem]">
-                    {formatRwf(
-                      deal.transportFee ?? deal.transportOfferedFee ?? 0
-                    )}
-                  </b>
-                  <StatusBadge status={deal.status} />
-                </div>
-              </div>
+              <MyDeliveryCard key={deal.id} deal={deal} />
             ))}
           </div>
         )}
@@ -125,6 +118,30 @@ function RouteLine({ deal }: { deal: Deal }) {
         {deal.deliveryLocation?.trim() || "Delivery address not set"}
       </span>
     </small>
+  );
+}
+
+function MyDeliveryCard({ deal }: { deal: Deal }) {
+  return (
+    <article className="rounded-1.25 border border-soko-line px-3.5 py-3.5">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <strong className="block text-[0.8125rem]">{deal.product}</strong>
+          <RouteLine deal={deal} />
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <StatusBadge status={deal.status} />
+          <b className="text-[0.75rem]">
+            {formatRwf(deal.transportFee ?? deal.transportOfferedFee ?? 0)}
+          </b>
+        </div>
+      </div>
+      {deal.status === "in_transit" ? (
+        <RequestDeliveryConfirmationButton deal={deal} />
+      ) : isFulfillmentStatus(deal.status) ? (
+        <FulfillmentSteps deal={deal} actor="logistics" />
+      ) : null}
+    </article>
   );
 }
 

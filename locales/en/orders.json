@@ -10,9 +10,8 @@
   "inTransit": "In Transit",
   "delivered": "Delivered",
   "paymentReceived": "Payment Received",
-  "paymentHeldDescription": "Buyer payment is held until delivery is confirmed.",
-  "requestTransport": "Request Transport",
-  "requestTransportDescription": "Ask logistics to pick up stock and deliver to the buyer.",
+  "paymentHeldDescription": "Buyer payment is held until delivery is confirmed. Delivery opens for logistics at a Pinza-quoted fee.",
+  "awaitingLogisticsDescription": "Logistics can accept the quoted delivery fee. No transport request is needed from you.",
   "acceptQuote": "Accept Quote",
   "acceptQuoteDescription": "Choose a transporter. Accepting starts the delivery plan.",
   "packaging": "Packaging",
@@ -20,14 +19,13 @@
   "inTransitDescription": "After packaging is confirmed, the order is marked in transit.",
   "packagingConfirmedInTransit": "Packaging Confirmed In Transit",
   "buyerConfirmedDelivery": "Buyer Confirmed Delivery",
-  "sellerPayoutSummary": "Buyer confirmed delivery. You receive {{netAmount}} after a {{platformFeePercent}}% platform fee ({{platformFee}}) and delivery ({{deliveryFee}}).",
+  "sellerPayoutSummary": "Buyer confirmed delivery. You receive {{netAmount}} after a {{platformFeePercent}}% platform fee ({{platformFee}}). Delivery ({{deliveryFee}}) was paid by the buyer.",
   "purchaseTrackingEmpty": "Paid purchases will appear here with tracking details.",
   "orderSummary": "{{buyer}} · {{quantity}} {{unit}} · {{amount}}",
   "deliveryRoute": "{{pickupLocation}} → {{deliveryLocation}}",
   "steps": {
     "paymentReceived": "Payment received",
-    "requestTransport": "Request transport",
-    "acceptQuote": "Accept a quote",
+    "awaitingLogistics": "Awaiting logistics",
     "packaging": "Packaging",
     "inTransit": "In transit"
   }

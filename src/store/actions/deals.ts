@@ -4,10 +4,11 @@ import type {
   ApiDeal,
   ConfirmDealRequest,
   CreateDealRequest,
+  DeliveryQuotePreview,
   LogisticsIncome,
   PayDealRequest,
+  PreviewDeliveryQuoteRequest,
   QuoteTransportRequest,
-  RequestTransportRequest,
 } from "@/types/deal";
 
 const productLists = [
@@ -76,6 +77,16 @@ const dealsApi = baseAPI.injectEndpoints({
       }),
       invalidatesTags: [...dealLists, ...productLists],
     }),
+    previewDeliveryQuote: builder.mutation<
+      DeliveryQuotePreview,
+      { id: string; body?: PreviewDeliveryQuoteRequest }
+    >({
+      query: ({ id, body }) => ({
+        url: `/deals/${id}/delivery-quote`,
+        method: "POST",
+        body: body ?? {},
+      }),
+    }),
     payDeal: builder.mutation<ApiDeal, { id: string; body: PayDealRequest }>({
       query: ({ id, body }) => ({
         url: `/deals/${id}/pay`,
@@ -123,17 +134,6 @@ const dealsApi = baseAPI.injectEndpoints({
         { type: "Products", id: "ALL" },
         { type: "Products", id: "SELL_REQUESTS" },
       ],
-    }),
-    requestTransport: builder.mutation<
-      ApiDeal,
-      { id: string; body: RequestTransportRequest }
-    >({
-      query: ({ id, body }) => ({
-        url: `/deals/${id}/transport`,
-        method: "POST",
-        body,
-      }),
-      invalidatesTags: dealLists,
     }),
     quoteTransport: builder.mutation<
       ApiDeal,
@@ -206,8 +206,8 @@ export const {
   useListTransportDealsQuery,
   useListLogisticsIncomeQuery,
   useConfirmDealMutation,
+  usePreviewDeliveryQuoteMutation,
   usePayDealMutation,
-  useRequestTransportMutation,
   useQuoteTransportMutation,
   useAcceptOfferedTransportMutation,
   useConfirmTransportMutation,

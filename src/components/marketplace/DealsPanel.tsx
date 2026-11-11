@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useTranslation from "next-translate/useTranslation";
 import { btn } from "@/lib/ui";
 import {
@@ -10,10 +10,10 @@ import {
 } from "@/lib/marketplaceStore";
 import {
   ConfirmTransportButton,
-  RequestTransportForm,
   deliveryPriceNote,
 } from "@/components/marketplace/TransportActions";
 import {
+  ConfirmPackagingButton,
   FulfillmentSteps,
   isFulfillmentStatus,
 } from "@/components/marketplace/FulfillmentSteps";
@@ -27,12 +27,15 @@ import {
   StatusBadge,
 } from "@/components/marketplace/uiBits";
 import { getSession } from "@/lib/session";
+import { formatApiError } from "@/lib/apiError";
 import {
   liveDealListOptions,
   useListIncomingDealsQuery,
   useListMyDealsQuery,
+  usePreviewDeliveryQuoteMutation,
 } from "@/store/actions/deals";
 import type { Deal } from "@/lib/marketplaceTypes";
+import type { DeliveryQuotePreview } from "@/types/deal";
 
 function mergeDeals(local: Deal[], remote: Deal[]) {
   const byId = new Map<string, Deal>();
@@ -105,7 +108,10 @@ export function DealsPanel({
     (canFetchMine && mineLoading) || (canFetchIncoming && incomingLoading);
   const failed =
     (canFetchMine && mineError) || (canFetchIncoming && incomingError);
-  const [paying, setPaying] = useState<Deal | null>(null);
+  const [paying, setPaying] = useState<{
+    deal: Deal;
+    quote: DeliveryQuotePreview;
+  } | null>(null);
 
   return (
     <Panel
@@ -157,10 +163,6 @@ export function DealsPanel({
                 : deal.paymentMethod === "MOBILE_MONEY"
                   ? `mobile money ${deal.paymentAccount ?? ""}`
                   : deal.paymentAccount;
-            const canRequestTransport =
-              perspective === "supplier" &&
-              isMineAsSupplier &&
-              deal.status === "paid";
             const canConfirmTransport =
               perspective === "supplier" &&
               isMineAsSupplier &&
@@ -196,6 +198,11 @@ export function DealsPanel({
                     </strong>
                     {formatRwf(deal.paidAmount ?? 0)} for {deal.confirmedQty}{" "}
                     {deal.unit}
+                    {deal.transportFee != null
+                      ? ` · trays ${formatRwf(
+                          (deal.offerPrice ?? 0) * (deal.confirmedQty ?? 0)
+                        )} + delivery ${formatRwf(deal.transportFee)}`
+                      : ""}
                     {instrument ? ` · ${instrument}` : ""}
                     {deal.paymentReleaseStatus === "RELEASED"
                       ? " · released"
@@ -212,27 +219,10 @@ export function DealsPanel({
                 {canConfirm ? <ConfirmDealForm deal={deal} /> : null}
 
                 {canPay ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <span className="text-[0.6875rem]">
-                      {t("paySupplier", {
-                        amount: formatRwf(
-                          (deal.offerPrice ?? 0) * (deal.confirmedQty ?? 0)
-                        ),
-                        supplier: deal.supplierName,
-                      })}
-                    </span>
-                    <button
-                      type="button"
-                      className={btn.buyCompact}
-                      onClick={() => setPaying(deal)}
-                    >
-                      {t("proceedToPayment")}
-                    </button>
-                  </div>
-                ) : null}
-
-                {canRequestTransport ? (
-                  <RequestTransportForm deal={deal} />
+                  <BuyerPayActions
+                    deal={deal}
+                    onPay={(quote) => setPaying({ deal, quote })}
+                  />
                 ) : null}
 
                 {canConfirmTransport ? (
@@ -245,18 +235,25 @@ export function DealsPanel({
                   </p>
                 ) : null}
 
-                {deal.status === "transport_accepted" && isMineAsSupplier ? (
+                {deal.status === "transport_accepted" &&
+                perspective === "supplier" ? (
                   <p className="mt-3 mb-0 text-[0.625rem] text-soko-green-2">
                     Transport booked
                     {deal.transportFee
                       ? ` · ${formatRwf(deal.transportFee)}`
                       : ""}
+                    . Waiting for logistics to request packaging.
                   </p>
+                ) : null}
+
+                {perspective === "supplier" &&
+                deal.status === "packaging_requested" ? (
+                  <ConfirmPackagingButton deal={deal} />
                 ) : null}
 
                 {isFulfillmentStatus(deal.status) &&
                 perspective === "supplier" &&
-                isMineAsSupplier ? (
+                deal.status !== "packaging_requested" ? (
                   <FulfillmentSteps deal={deal} actor="supplier" />
                 ) : null}
                 {(deal.status === "delivery_pending" ||
@@ -276,14 +273,111 @@ export function DealsPanel({
       )}
       {paying ? (
         <PayDealDialog
-          dealId={paying.id}
-          amount={(paying.offerPrice ?? 0) * (paying.confirmedQty ?? 0)}
-          supplierName={paying.supplierName ?? "the seller"}
-          purpose={paying.product}
-          deliveryLocation={paying.deliveryLocation}
+          dealId={paying.deal.id}
+          productAmount={paying.quote.productAmount}
+          deliveryFee={paying.quote.deliveryFee}
+          amount={paying.quote.totalAmount}
+          supplierName={paying.deal.supplierName ?? "the seller"}
+          purpose={paying.deal.product}
+          pickupLocation={paying.quote.pickupLocation}
+          deliveryLocation={
+            paying.quote.deliveryLocation || paying.deal.deliveryLocation
+          }
           onClose={() => setPaying(null)}
         />
       ) : null}
     </Panel>
+  );
+}
+
+function formatRouteAddress(value: string | null | undefined) {
+  if (!value?.trim()) return "";
+  return value
+    .replace(/\s*·\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$/, "")
+    .trim();
+}
+
+function BuyerPayActions({
+  deal,
+  onPay,
+}: {
+  deal: Deal;
+  onPay: (quote: DeliveryQuotePreview) => void;
+}) {
+  const { t } = useTranslation("deals");
+  const [preview, { data, error, isLoading, isError }] =
+    usePreviewDeliveryQuoteMutation();
+  const trays = (deal.offerPrice ?? 0) * (deal.confirmedQty ?? deal.quantity);
+
+  useEffect(() => {
+    void preview({ id: deal.id });
+  }, [deal.id, deal.deliveryLocation, preview]);
+
+  const quote = data;
+  const total = quote?.totalAmount ?? trays;
+  const ready = Boolean(quote);
+
+  return (
+    <div className="mt-3 space-y-3">
+      <div className="rounded-1.25 border border-soko-line bg-soko-slate/40 px-3 py-2.5 text-[0.6875rem] text-soko-ink">
+        <div className="flex items-center justify-between gap-3">
+          <span>{t("traysAmount")}</span>
+          <strong>{formatRwf(quote?.productAmount ?? trays)}</strong>
+        </div>
+        <div className="mt-1.5 flex items-start justify-between gap-3">
+          <span className="shrink-0">{t("deliveryAmount")}</span>
+          <strong className="text-right">
+            {isLoading && !quote
+              ? t("estimatingDelivery")
+              : quote
+                ? formatRwf(quote.deliveryFee)
+                : "—"}
+          </strong>
+        </div>
+        {quote ? (
+          <p className="m-0 mt-1.5 text-[0.625rem] leading-snug text-soko-muted">
+            {formatRouteAddress(quote.pickupLocation) || t("pickupNotSet")}
+            {" → "}
+            {formatRouteAddress(quote.deliveryLocation) || t("deliveryNotSet")}
+          </p>
+        ) : null}
+        <div className="mt-2 flex items-center justify-between gap-3 border-t border-soko-line pt-2 text-[0.75rem]">
+          <span className="font-semibold">{t("totalDue")}</span>
+          <strong>{formatRwf(total)}</strong>
+        </div>
+        {isError ? (
+          <p className="m-0 mt-2 text-[#b42318]">
+            {formatApiError(error) || t("deliveryQuoteFailed")}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-[0.6875rem]">
+          {t("paySupplier", {
+            amount: formatRwf(total),
+            supplier: deal.supplierName,
+          })}
+        </span>
+        <button
+          type="button"
+          className={btn.buyCompact}
+          disabled={!ready || isLoading}
+          onClick={() => {
+            if (quote) onPay(quote);
+          }}
+        >
+          {t("proceedToPayment")}
+        </button>
+        {isError ? (
+          <button
+            type="button"
+            className="border-0 bg-transparent p-0 text-[0.6875rem] text-soko-green-2 underline"
+            onClick={() => void preview({ id: deal.id })}
+          >
+            Retry
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }

@@ -25,7 +25,13 @@ function matchName<T extends { name: string }>(
 ): T | undefined {
   if (!name) return undefined;
   const needle = name.trim().toLowerCase();
-  return items.find((item) => item.name.toLowerCase() === needle);
+  return (
+    items.find((item) => item.name.toLowerCase() === needle) ??
+    items.find((item) => {
+      const candidate = item.name.toLowerCase();
+      return candidate.includes(needle) || needle.includes(candidate);
+    })
+  );
 }
 
 export function formatRwandaLocation(
