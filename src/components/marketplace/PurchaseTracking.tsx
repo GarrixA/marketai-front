@@ -10,10 +10,10 @@ import {
 } from "@/lib/marketplaceStore";
 import {
   ConfirmTransportButton,
-  RequestTransportForm,
   deliveryPriceNote,
 } from "@/components/marketplace/TransportActions";
 import {
+  ConfirmPackagingButton,
   FulfillmentSteps,
   isFulfillmentStatus,
 } from "@/components/marketplace/FulfillmentSteps";
@@ -86,8 +86,8 @@ function buyerNote(deal: Deal) {
       )}. Waiting for the seller to confirm that price.`;
     case "transport_open":
       return deal.transportOfferedFee
-        ? `The seller requested delivery at ${formatRwf(deal.transportOfferedFee)}. Waiting for a deliverer to accept.`
-        : "The seller requested delivery without a price. Waiting for a deliverer to propose one.";
+        ? `Delivery is open at ${formatRwf(deal.transportOfferedFee)}. Waiting for a deliverer to accept.`
+        : "Delivery is open. Waiting for a deliverer to accept.";
     default:
       return `Paid and waiting to be delivered to ${deal.deliveryLocation}.`;
   }
@@ -97,17 +97,17 @@ function procedureIndex(status: DealStatus) {
   switch (status) {
     case "transport_open":
     case "transport_quoted":
-      return 2;
+      return 1;
     case "transport_accepted":
     case "packaging_requested":
-      return 3;
+      return 2;
     case "in_transit":
     case "delivery_pending":
-      return 4;
+      return 3;
     case "delivered":
-      return 5;
+      return 4;
     default:
-      return 1;
+      return 0;
   }
 }
 
@@ -118,14 +118,9 @@ const SELLER_STEPS = [
     bodyKey: "paymentHeldDescription",
   },
   {
-    id: "requestTransport",
-    titleKey: "steps.requestTransport",
-    bodyKey: "requestTransportDescription",
-  },
-  {
-    id: "acceptQuote",
-    titleKey: "steps.acceptQuote",
-    bodyKey: "acceptQuoteDescription",
+    id: "awaitingLogistics",
+    titleKey: "steps.awaitingLogistics",
+    bodyKey: "awaitingLogisticsDescription",
   },
   {
     id: "packaging",
@@ -364,11 +359,14 @@ function SupplierSaleCard({ deal }: { deal: Deal }) {
             })
           : `Pickup not set → ${deal.deliveryLocation}`}
       </p>
-      {deal.status === "paid" ? <RequestTransportForm deal={deal} /> : null}
       {deal.status === "transport_quoted" ? (
         <ConfirmTransportButton deal={deal} />
       ) : null}
-      {isFulfillmentStatus(deal.status) ? (
+      {deal.status === "packaging_requested" ? (
+        <ConfirmPackagingButton deal={deal} />
+      ) : null}
+      {isFulfillmentStatus(deal.status) &&
+      deal.status !== "packaging_requested" ? (
         <FulfillmentSteps deal={deal} actor="supplier" showTrack={false} />
       ) : null}
       {deliveryPriceNote(deal) && deal.status !== "transport_quoted" ? (

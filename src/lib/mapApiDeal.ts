@@ -75,6 +75,7 @@ export function mapApiDealToLocal(deal: ApiDeal): Deal {
     transportOpenedAt: deal.transportRequestedAt ?? undefined,
     logisticsName: deal.logisticsName ?? undefined,
     logisticsEmail: deal.logisticsEmail ?? undefined,
+    logisticsUserId: deal.logisticsUserId ?? undefined,
     transportQuotes:
       deal.logisticsEmail && deal.transportQuoteFee != null
         ? [

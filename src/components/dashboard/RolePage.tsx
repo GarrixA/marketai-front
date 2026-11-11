@@ -1,12 +1,8 @@
 "use client";
 
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import {
-  getSessionSnapshot,
-  subscribeSession,
-  type DashboardRole,
-} from "@/lib/session";
+import { useSession, type DashboardRole } from "@/lib/session";
 import {
   roleCanAccess,
   SECTION_PATH,
@@ -14,18 +10,8 @@ import {
 } from "@/lib/dashboardNav";
 
 export function useDashboardRole() {
-  const router = useRouter();
-  const session = useSyncExternalStore(
-    subscribeSession,
-    getSessionSnapshot,
-    () => null
-  );
-
-  useEffect(() => {
-    if (!session) router.replace("/");
-  }, [session, router]);
-
-  return session?.role ?? null;
+  // Auth redirect lives in DashboardGate — wait for hydration there.
+  return useSession()?.role ?? null;
 }
 
 export function RolePage({

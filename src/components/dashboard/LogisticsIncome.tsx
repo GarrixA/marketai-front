@@ -33,7 +33,7 @@ export function LogisticsIncome() {
 
       <Panel
         title={t("income")}
-        subtitle="Each row is the delivery fee from a confirmed drop-off. The platform fee and the seller payout are settled separately."
+        subtitle="Each row is your net delivery fee after the 5% platform cut. Seller payout is settled separately."
       >
         {isLoading && entries.length === 0 ? (
           <EmptyState message="Loading income…" />

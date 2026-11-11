@@ -21,7 +21,7 @@
   "buyerConfirms": "Umuguzi yemeza ko yabibonye",
   "paidOut": "Amafaranga yishyuwe",
   "delivered": "Byagejejwe ku muguzi",
-  "deliveredFeeInIncome": "Ibicuruzwa byagejejwe ku muguzi. Amafaranga yawe y’ubwikorezi angana na {{amount}} agaragara mu byinjijwe.",
+  "deliveredFeeInIncome": "Ibicuruzwa byagejejwe ku muguzi. Amafaranga yawe y’ubwikorezi angana na {{amount}} (nyuma yo gukuraho 5% y’isoko) agaragara mu byinjijwe.",
   "askBuyerConfirmDelivery": "Saba umuguzi kwemeza ko yakiriye ibicuruzwa",
   "income": "Ibyinjijwe",
   "incomeDescription": "Amafaranga y’ubwikorezi ashyirwa kuri konti nyuma y’uko umuguzi yemeje ko yakiriye ibicuruzwa.",

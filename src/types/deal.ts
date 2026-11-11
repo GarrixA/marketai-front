@@ -95,6 +95,23 @@ export type PayDealRequest = {
   deliveryLocation?: string;
 };
 
+export type PreviewDeliveryQuoteRequest = {
+  deliveryLocation?: string;
+};
+
+export type DeliveryQuotePreview = {
+  dealId: string;
+  currency: string;
+  productAmount: number;
+  deliveryFee: number;
+  totalAmount: number;
+  distanceKm: number;
+  distanceEstimated: boolean;
+  etaMinutes: number;
+  pickupLocation: string | null;
+  deliveryLocation: string;
+};
+
 export type RequestTransportRequest = {
   fee?: number;
 };

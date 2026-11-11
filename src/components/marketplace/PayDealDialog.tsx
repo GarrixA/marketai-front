@@ -18,8 +18,12 @@ import {
   paymentReference,
   type PaymentReceipt,
 } from "@/components/marketplace/PaymentResultDialog";
-import { usePayDealMutation } from "@/store/actions/deals";
+import {
+  usePayDealMutation,
+  usePreviewDeliveryQuoteMutation,
+} from "@/store/actions/deals";
 import type { PayDealRequest } from "@/types/deal";
+import useTranslation from "next-translate/useTranslation";
 
 type Method = PayDealRequest["method"];
 type OperatorId = "mtn" | "airtel";
@@ -46,18 +50,31 @@ const formVariants = {
   }),
 };
 
+function formatRouteAddress(value: string | null | undefined) {
+  if (!value?.trim()) return "";
+  return value
+    .replace(/\s*·\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$/, "")
+    .trim();
+}
+
 export function PayDealDialog({
   dealId,
   amount,
+  productAmount,
+  deliveryFee,
   supplierName,
   purpose = "Deal payment",
+  pickupLocation,
   deliveryLocation,
   onClose,
 }: {
   dealId: string;
   amount: number;
+  productAmount: number;
+  deliveryFee: number;
   supplierName: string;
   purpose?: string;
+  pickupLocation?: string | null;
   deliveryLocation: string;
   onClose: () => void;
 }) {
@@ -75,19 +92,65 @@ export function PayDealDialog({
   );
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState<PaymentReceipt | null>(null);
-  const [payDeal, { isLoading }] = usePayDealMutation();
+  const { t } = useTranslation("deals");
+  const [payDeal, { isLoading: paying }] = usePayDealMutation();
+  const [previewQuote, { isLoading: quoting }] =
+    usePreviewDeliveryQuoteMutation();
+  const propsQuoteKey = [
+    amount,
+    productAmount,
+    deliveryFee,
+    pickupLocation ?? "",
+    deliveryLocation,
+  ].join("|");
+  const [quotePropsKey, setQuotePropsKey] = useState(propsQuoteKey);
+  const [quoteOverride, setQuoteOverride] = useState<{
+    productAmount: number;
+    deliveryFee: number;
+    totalAmount: number;
+    pickupLocation: string | null;
+    deliveryLocation: string;
+  } | null>(null);
+
+  // Reset quote overrides when the deal amounts / route props change.
+  if (quotePropsKey !== propsQuoteKey) {
+    setQuotePropsKey(propsQuoteKey);
+    setQuoteOverride(null);
+  }
+
+  const productDue = quoteOverride?.productAmount ?? productAmount;
+  const deliveryDue = quoteOverride?.deliveryFee ?? deliveryFee;
+  const totalDue = quoteOverride?.totalAmount ?? amount;
+  const routePickup = quoteOverride?.pickupLocation ?? pickupLocation ?? null;
+  const routeDelivery = quoteOverride?.deliveryLocation ?? deliveryLocation;
 
   const localPhone = rwandaMobile(phone);
   const operator = operatorChoice;
   const savedAddress = deliveryLocation.trim();
+  const busy = paying || quoting;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isLoading) onClose();
+      if (event.key === "Escape" && !busy) onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isLoading, onClose]);
+  }, [busy, onClose]);
+
+  const refreshQuote = async (nextLocation?: string) => {
+    const quote = await previewQuote({
+      id: dealId,
+      body: nextLocation ? { deliveryLocation: nextLocation } : {},
+    }).unwrap();
+    setQuoteOverride({
+      productAmount: quote.productAmount,
+      deliveryFee: quote.deliveryFee,
+      totalAmount: quote.totalAmount,
+      pickupLocation: quote.pickupLocation,
+      deliveryLocation: quote.deliveryLocation,
+    });
+    return quote;
+  };
 
   const pan = digitsOnly(cardNumber);
   const brand = cardBrand(pan);
@@ -124,6 +187,9 @@ export function PayDealDialog({
       method === "CARD" ? pan.slice(-4) : `+250${localPhone ?? ""}`;
     const mode = method === "CARD" ? "Card" : "Mobile money";
     try {
+      if (nextLocation) {
+        await refreshQuote(nextLocation);
+      }
       const saved = await payDeal({
         id: dealId,
         body: {
@@ -134,7 +200,7 @@ export function PayDealDialog({
       }).unwrap();
       setReceipt({
         ok: true,
-        amount: saved.payment?.amount ?? amount,
+        amount: saved.payment?.amount ?? totalDue,
         reference: paymentReference(saved.payment?.id),
         paidAt: saved.payment?.paidAt ?? new Date().toISOString(),
         mode: saved.payment?.account
@@ -144,7 +210,7 @@ export function PayDealDialog({
     } catch (err) {
       setReceipt({
         ok: false,
-        amount,
+        amount: totalDue,
         reference: paymentReference(),
         paidAt: new Date().toISOString(),
         mode,
@@ -158,7 +224,7 @@ export function PayDealDialog({
       <div
         className="fixed inset-0 z-130 grid place-items-center overflow-y-auto bg-soko-navy/72 p-4 backdrop-blur-sm"
         onClick={() => {
-          if (!isLoading) onClose();
+          if (!busy) onClose();
         }}
       >
         <motion.div
@@ -174,7 +240,7 @@ export function PayDealDialog({
             type="button"
             className="absolute top-4 right-4 z-10 grid h-8 w-8 place-items-center rounded-full border border-soko-line bg-white text-soko-muted hover:text-soko-navy"
             onClick={onClose}
-            disabled={isLoading}
+            disabled={busy}
             aria-label="Close payment"
           >
             <Icon name="close" size={16} />
@@ -188,8 +254,27 @@ export function PayDealDialog({
               Payment
             </h3>
             <p className="m-0 mt-1 text-[0.75rem] text-soko-muted">
-              {formatRwf(amount)} stays held until delivery is complete.
+              {formatRwf(totalDue)} stays held until delivery is complete.
             </p>
+            <div className="mt-3 space-y-1 rounded-xl border border-[#e6e8ee] bg-[#fbfbfd] px-3 py-2.5 text-[0.75rem] text-[#2a2e37]">
+              <div className="flex justify-between gap-3">
+                <span>{t("traysAmount")}</span>
+                <strong>{formatRwf(productDue)}</strong>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>{t("deliveryAmount")}</span>
+                <strong>{formatRwf(deliveryDue)}</strong>
+              </div>
+              <p className="m-0 text-[0.6875rem] leading-snug text-soko-muted">
+                {formatRouteAddress(routePickup) || t("pickupNotSet")}
+                {" → "}
+                {formatRouteAddress(routeDelivery) || t("deliveryNotSet")}
+              </p>
+              <div className="flex justify-between gap-3 border-t border-[#e6e8ee] pt-1.5">
+                <span className="font-semibold">{t("totalDue")}</span>
+                <strong>{formatRwf(totalDue)}</strong>
+              </div>
+            </div>
           </div>
 
           <div
@@ -304,13 +389,13 @@ export function PayDealDialog({
                       cardReady ? "" : "opacity-40"
                     }`}
                     style={{ background: payIndigo }}
-                    disabled={!cardReady || isLoading}
+                    disabled={!cardReady || busy}
                     onClick={reviewAddress}
                   >
-                    {isLoading ? (
+                    {busy ? (
                       <ButtonLoader label="Paying…" />
                     ) : (
-                      `Pay ${formatRwf(amount)}`
+                      `Pay ${formatRwf(totalDue)}`
                     )}
                   </button>
                 </motion.div>
@@ -354,7 +439,7 @@ export function PayDealDialog({
                       <input
                         className="min-w-0 flex-1 border-0 bg-white px-3 py-3 text-sm text-soko-ink outline-none"
                         readOnly
-                        value={amount.toLocaleString("en-RW")}
+                        value={totalDue.toLocaleString("en-RW")}
                         aria-label="Amount in Rwandan francs"
                       />
                     </span>
@@ -461,7 +546,7 @@ export function PayDealDialog({
                       className="inline-flex h-12 items-center justify-center rounded-full border-2 bg-white text-base font-semibold disabled:opacity-60"
                       style={{ borderColor: payIndigo, color: payIndigo }}
                       onClick={onClose}
-                      disabled={isLoading}
+                      disabled={busy}
                     >
                       Cancel
                     </button>
@@ -475,10 +560,10 @@ export function PayDealDialog({
                       style={
                         mobileReady ? { background: payIndigo } : undefined
                       }
-                      disabled={!mobileReady || isLoading}
+                      disabled={!mobileReady || busy}
                       onClick={reviewAddress}
                     >
-                      {isLoading ? <ButtonLoader label="Paying…" /> : "Pay"}
+                      {busy ? <ButtonLoader label="Paying…" /> : "Pay"}
                     </button>
                   </div>
                 </motion.div>
@@ -513,7 +598,7 @@ export function PayDealDialog({
                       type="button"
                       className="inline-flex h-12 items-center justify-center rounded-full border-2 bg-white text-base font-semibold disabled:opacity-60"
                       style={{ borderColor: payIndigo, color: payIndigo }}
-                      disabled={isLoading}
+                      disabled={busy}
                       onClick={() => {
                         setDirection(-1);
                         setError("");
@@ -526,16 +611,12 @@ export function PayDealDialog({
                       type="button"
                       className="inline-flex h-12 items-center justify-center rounded-full border-0 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
                       style={{ background: payIndigo }}
-                      disabled={!savedAddress || isLoading}
+                      disabled={!savedAddress || busy}
                       onClick={() => {
                         void submit();
                       }}
                     >
-                      {isLoading ? (
-                        <ButtonLoader label="Paying…" />
-                      ) : (
-                        "Use this"
-                      )}
+                      {busy ? <ButtonLoader label="Paying…" /> : "Use this"}
                     </button>
                   </div>
                 </motion.div>
@@ -560,7 +641,7 @@ export function PayDealDialog({
                     <DeliveryAddressFields
                       value={draftAddress}
                       onChange={setDraftAddress}
-                      disabled={isLoading}
+                      disabled={busy}
                       required
                     />
                   </div>
@@ -574,7 +655,7 @@ export function PayDealDialog({
                       type="button"
                       className="inline-flex h-12 items-center justify-center rounded-full border-2 bg-white text-base font-semibold disabled:opacity-60"
                       style={{ borderColor: payIndigo, color: payIndigo }}
-                      disabled={isLoading}
+                      disabled={busy}
                       onClick={() => {
                         setDirection(-1);
                         setError("");
@@ -587,18 +668,14 @@ export function PayDealDialog({
                       type="button"
                       className="inline-flex h-12 items-center justify-center rounded-full border-0 text-base font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
                       style={{ background: payIndigo }}
-                      disabled={!hasDeliveryAddress(draftAddress) || isLoading}
+                      disabled={!hasDeliveryAddress(draftAddress) || busy}
                       onClick={() => {
                         const next = formatDeliveryAddress(draftAddress).trim();
                         if (!next || next === "—") return;
                         void submit(next);
                       }}
                     >
-                      {isLoading ? (
-                        <ButtonLoader label="Paying…" />
-                      ) : (
-                        "Use this"
-                      )}
+                      {busy ? <ButtonLoader label="Paying…" /> : "Use this"}
                     </button>
                   </div>
                 </motion.div>

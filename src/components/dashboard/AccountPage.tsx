@@ -16,14 +16,11 @@ import { Panel, Field, fieldClass } from "@/components/marketplace/uiBits";
 import { useAppDialog } from "@/hooks/useAppDialog";
 import { btn } from "@/lib/ui";
 import { formatApiError } from "@/lib/apiError";
-import { hasDeliveryAddress } from "@/lib/deliveryAddress";
-import { resolveMediaUrl } from "@/lib/mediaUrl";
-// import { validateCoordinatesAgainstAddress } from "@/lib/validateRwandaCoordinates";
-import { CoordinateMismatchDialog } from "@/components/support/CoordinateMismatchDialog";
 import {
-  SupportTicketModal,
-  type SupportTicketPrefill,
-} from "@/components/support/SupportTicketModal";
+  deliveryAddressToApiPayload,
+  hasDeliveryAddress,
+} from "@/lib/deliveryAddress";
+import { resolveMediaUrl } from "@/lib/mediaUrl";
 import { getSession, setSession } from "@/lib/session";
 import { authService } from "@/services/auth.service";
 import type {
@@ -347,37 +344,62 @@ function formatEstimatedVolume(
 }
 
 function toLocationPayload(address: DeliveryAddressValue) {
-  // const latitude = address.latitude?.trim()
-  //   ? Number(address.latitude)
-  //   : undefined;
-  // const longitude = address.longitude?.trim()
-  //   ? Number(address.longitude)
-  //   : undefined;
-  return {
-    province: address.province,
-    district: address.district,
-    sector: address.sector,
-    cell: address.cell,
-    village: address.village,
-    hood: address.hood?.trim() || undefined,
-    // latitude:
-    //   latitude !== undefined && Number.isFinite(latitude)
-    //     ? latitude
-    //     : undefined,
-    // longitude:
-    //   longitude !== undefined && Number.isFinite(longitude)
-    //     ? longitude
-    //     : undefined,
-  };
+  return deliveryAddressToApiPayload(address);
+}
+
+function meRoleNames(me: MeResponse | null | undefined) {
+  return (me?.roles ?? []).map((role) =>
+    (typeof role === "string" ? role : role.name).toUpperCase()
+  );
+}
+
+function isAggregatorAccount(me: MeResponse | null | undefined) {
+  if (!me) return false;
+  if (me.aggregatorProfileId || me.aggregatorProfile) return true;
+  return meRoleNames(me).includes("AGGREGATOR");
+}
+
+function isSupplierAccount(me: MeResponse | null | undefined) {
+  if (!me) return false;
+  if (me.supplierProfileId || me.supplierProfile) return true;
+  return meRoleNames(me).includes("SUPPLIER");
+}
+
+function isBuyerAccount(me: MeResponse | null | undefined) {
+  if (!me) return false;
+  if (me.buyerProfileId || me.buyerProfile) return true;
+  return meRoleNames(me).includes("BUYER");
 }
 
 function canEditDeliveryAddress(me: MeResponse | null) {
   if (!me) return false;
-  if (me.buyerProfileId || me.aggregatorProfileId) return true;
-  const roles = (me.roles ?? []).map((role) =>
-    (typeof role === "string" ? role : role.name).toUpperCase()
-  );
-  return roles.includes("BUYER") || roles.includes("AGGREGATOR");
+  return isBuyerAccount(me) || isAggregatorAccount(me) || isSupplierAccount(me);
+}
+
+/** Panel copy for the shared profile location (delivery and/or pickup). */
+function profileAddressCopy(me: MeResponse | null, t: (key: string) => string) {
+  if (isAggregatorAccount(me)) {
+    return {
+      title: t("deliveryPickupAddress"),
+      subtitle: t("deliveryPickupAddressDescription"),
+      editLabel: t("editDeliveryPickupAddress"),
+      emptyHint: t("noDeliveryPickupAddressYet"),
+    };
+  }
+  if (isSupplierAccount(me) && !isBuyerAccount(me)) {
+    return {
+      title: t("pickupAddress"),
+      subtitle: t("pickupAddressDescription"),
+      editLabel: t("editPickupAddress"),
+      emptyHint: t("noPickupAddressYet"),
+    };
+  }
+  return {
+    title: t("deliveryAddress"),
+    subtitle: t("deliveryAddressDescription"),
+    editLabel: t("editDeliveryAddress"),
+    emptyHint: t("noDeliveryAddressYet"),
+  };
 }
 
 /** Dedicated aggregator business location (not the shared delivery/profile pin). */
@@ -415,11 +437,6 @@ export function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<EditSection | null>(null);
   const [savingSection, setSavingSection] = useState<SaveSection>(null);
-  const [mismatchOpen, setMismatchOpen] = useState(false);
-  const [mismatchMessage] = useState("");
-  const [helpOpen, setHelpOpen] = useState(false);
-  const [helpPrefill] = useState<SupportTicketPrefill | null>(null);
-
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -430,6 +447,8 @@ export function AccountPage() {
   const [businessAddress, setBusinessAddress] = useState<DeliveryAddressValue>(
     emptyDeliveryAddress()
   );
+  const [deliveryValidated, setDeliveryValidated] = useState(false);
+  const [businessValidated, setBusinessValidated] = useState(false);
 
   const [companyName, setCompanyName] = useState("");
   const [businessRegistrationNumber, setBusinessRegistrationNumber] =
@@ -481,6 +500,8 @@ export function AccountPage() {
       setBusinessAddress(
         deliveryAddressFromLocation(aggregatorBusinessLocation(data))
       );
+      setDeliveryValidated(false);
+      setBusinessValidated(false);
 
       setCompanyName(
         data.aggregatorProfile?.companyName || data.profile?.businessName || ""
@@ -595,87 +616,24 @@ export function AccountPage() {
     }
   };
 
-  const validateAddressCoords = async (
-    _address: DeliveryAddressValue,
-    _kind: "delivery" | "business"
-  ) => {
-    // Coordinates ignored for now.
-    return true;
-    // const lat = address.latitude?.trim() ? Number(address.latitude) : NaN;
-    // const lng = address.longitude?.trim() ? Number(address.longitude) : NaN;
-    // if (
-    //   !Number.isFinite(lat) ||
-    //   !Number.isFinite(lng) ||
-    //   !address.village?.trim()
-    // ) {
-    //   return true;
-    // }
-    //
-    // const label = kind === "delivery" ? "delivery" : "business";
-    // try {
-    //   const check = await validateCoordinatesAgainstAddress({
-    //     latitude: lat,
-    //     longitude: lng,
-    //     province: address.province,
-    //     district: address.district,
-    //     sector: address.sector,
-    //     cell: address.cell,
-    //     village: address.village,
-    //   });
-    //   if (!check.ok) {
-    //     setMismatchMessage(
-    //       `${check.message} Fix the address, or request help from admin.`
-    //     );
-    //     setHelpPrefill({
-    //       category: "LOCATION_MISMATCH",
-    //       subject: `${kind === "delivery" ? "Delivery" : "Business"} coordinates do not match selected village`,
-    //       message: `My GPS coordinates do not match the village I selected. Please help me correct my ${label} address.`,
-    //       context: {
-    //         summary: check.message,
-    //         selectedAddress: address,
-    //         lookup: check.lookup,
-    //         mismatches: check.mismatches,
-    //         addressKind: kind,
-    //       },
-    //     });
-    //     setMismatchOpen(true);
-    //     return false;
-    //   }
-    // } catch {
-    //   setMismatchMessage(
-    //     "Village boundary lookup failed. Fix the address, or request help from admin."
-    //   );
-    //   setHelpPrefill({
-    //     category: "LOCATION_MISMATCH",
-    //     subject: `Could not verify ${label} coordinates`,
-    //     message: `Village boundary lookup failed while saving my ${label} address. Please help me verify it.`,
-    //     context: {
-    //       summary: "Village boundary lookup failed.",
-    //       selectedAddress: address,
-    //       latitude: lat,
-    //       longitude: lng,
-    //       addressKind: kind,
-    //     },
-    //   });
-    //   setMismatchOpen(true);
-    //   return false;
-    // }
-    // return true;
-  };
-
   const submitDelivery = async (e: React.FormEvent) => {
     e.preventDefault();
     if (savingSection) return;
     if (!hasDeliveryAddress(deliveryAddress)) {
-      await showError(
-        "Select a province and district for your delivery address.",
-        { title: "Address required" }
-      );
+      await showError("Select a province and district for your address.", {
+        title: "Address required",
+      });
+      return;
+    }
+    if (!deliveryValidated) {
+      await showError(t("validateAddressBeforeSave"), {
+        title: "Address not validated",
+      });
       return;
     }
 
-    const coordsOk = await validateAddressCoords(deliveryAddress, "delivery");
-    if (!coordsOk) return;
+    // AddressValidationControls already verified GPS ↔ village and synced
+    // province→cell. Skip the second mismatch dialog on Save.
 
     setSavingSection("delivery");
     try {
@@ -685,12 +643,13 @@ export function AccountPage() {
       hydrateFromMe(data);
       syncSessionFromMe(data);
       setEditing(null);
-      await showSuccess("Delivery address updated.", {
+      const savedLabel = profileAddressCopy(data, t).title;
+      await showSuccess(`${savedLabel} updated.`, {
         title: "Address saved",
       });
     } catch (err) {
       await showError(formatApiError(err), {
-        title: "Could not update delivery address",
+        title: "Could not update address",
       });
     } finally {
       setSavingSection(null);
@@ -742,8 +701,12 @@ export function AccountPage() {
       return;
     }
 
-    const coordsOk = await validateAddressCoords(businessAddress, "business");
-    if (!coordsOk) return;
+    if (!businessValidated) {
+      await showError(t("validateAddressBeforeSave"), {
+        title: "Address not validated",
+      });
+      return;
+    }
 
     setSavingSection("aggregator");
     try {
@@ -880,34 +843,11 @@ export function AccountPage() {
   };
 
   const busy = savingSection != null;
+  const addressCopy = profileAddressCopy(me, t);
 
   return (
     <>
       {dialog}
-      <CoordinateMismatchDialog
-        open={mismatchOpen}
-        message={mismatchMessage}
-        onClose={() => setMismatchOpen(false)}
-        onFixAddress={() => setMismatchOpen(false)}
-        onRequestHelp={() => {
-          setMismatchOpen(false);
-          setHelpOpen(true);
-        }}
-      />
-      <SupportTicketModal
-        open={helpOpen}
-        onClose={() => setHelpOpen(false)}
-        me={me}
-        prefill={helpPrefill}
-        onSubmitted={(ticketNumber) => {
-          void showSuccess(`Support ticket ${ticketNumber} sent to admin.`, {
-            title: "Help requested",
-          });
-        }}
-        onError={(message) => {
-          void showError(message, { title: "Could not send ticket" });
-        }}
-      />
       <div className="mb-4 flex gap-1 border-b border-soko-line">
         {tabs.map((item) => {
           const active = tab === item.id;
@@ -1161,12 +1101,12 @@ export function AccountPage() {
               {canEditDeliveryAddress(me) ? (
                 <motion.div variants={panelItem}>
                   <Panel
-                    title={t("deliveryAddress")}
-                    subtitle={t("deliveryAddressDescription")}
+                    title={addressCopy.title}
+                    subtitle={addressCopy.subtitle}
                     action={
                       editing === "delivery" ? null : (
                         <EditIconButton
-                          label="Edit delivery address"
+                          label={addressCopy.editLabel}
                           onClick={() => {
                             void startEditing("delivery");
                           }}
@@ -1185,9 +1125,10 @@ export function AccountPage() {
                               type="button"
                               className={`${btn.text} px-0 text-[0.6875rem]`}
                               disabled={busy}
-                              onClick={() =>
-                                setDeliveryAddress({ ...businessAddress })
-                              }
+                              onClick={() => {
+                                setDeliveryValidated(false);
+                                setDeliveryAddress({ ...businessAddress });
+                              }}
                             >
                               Use business address
                             </button>
@@ -1198,13 +1139,28 @@ export function AccountPage() {
                           onChange={setDeliveryAddress}
                           disabled={busy}
                           required
+                          requireValidation
+                          validated={deliveryValidated}
+                          onValidatedChange={setDeliveryValidated}
+                          purpose={
+                            isAggregatorAccount(me)
+                              ? "both"
+                              : isSupplierAccount(me) && !isBuyerAccount(me)
+                                ? "pickup"
+                                : "delivery"
+                          }
                         />
                         <div className="flex flex-wrap gap-2 pt-1">
                           <button
                             type="submit"
                             className={`${btn.primaryCompact}`}
-                            disabled={busy}
+                            disabled={busy || !deliveryValidated}
                             aria-busy={savingSection === "delivery"}
+                            title={
+                              !deliveryValidated
+                                ? t("validateAddressBeforeSave")
+                                : undefined
+                            }
                           >
                             {savingSection === "delivery" ? (
                               <ButtonLoader label="Saving…" />
@@ -1235,7 +1191,6 @@ export function AccountPage() {
                             label={t("hood")}
                             value={me.profile.location.hood}
                           />
-                          {/* Coordinates ignored for now.
                           <DetailTile
                             icon="pin"
                             label="Coordinates"
@@ -1246,13 +1201,10 @@ export function AccountPage() {
                                 : null
                             }
                           />
-                          */}
                         </DetailGrid>
                       </div>
                     ) : (
-                      <EmptyHint>
-                        No delivery address yet. Use the edit icon to add one.
-                      </EmptyHint>
+                      <EmptyHint>{addressCopy.emptyHint}</EmptyHint>
                     )}
                   </Panel>
                 </motion.div>
@@ -1358,19 +1310,25 @@ export function AccountPage() {
                         </Field>
 
                         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                          <p className="m-0 text-[0.625rem] font-bold tracking-wide text-soko-muted uppercase">
-                            {t("businessLocation")}
-                          </p>
+                          <div>
+                            <p className="m-0 text-[0.625rem] font-bold tracking-wide text-soko-muted uppercase">
+                              {t("businessLocation")}
+                            </p>
+                            <p className="m-0 mt-0.5 text-[0.6875rem] text-soko-muted">
+                              {t("businessLocationDescription")}
+                            </p>
+                          </div>
                           {hasDeliveryAddress(deliveryAddress) ? (
                             <button
                               type="button"
                               className={`${btn.text} px-0 text-[0.6875rem]`}
                               disabled={busy}
-                              onClick={() =>
-                                setBusinessAddress({ ...deliveryAddress })
-                              }
+                              onClick={() => {
+                                setBusinessValidated(false);
+                                setBusinessAddress({ ...deliveryAddress });
+                              }}
                             >
-                              Use delivery address
+                              Use profile address
                             </button>
                           ) : null}
                         </div>
@@ -1380,6 +1338,10 @@ export function AccountPage() {
                             onChange={setBusinessAddress}
                             disabled={busy}
                             required
+                            requireValidation
+                            validated={businessValidated}
+                            onValidatedChange={setBusinessValidated}
+                            purpose="pickup"
                           />
                         </div>
 
@@ -1516,8 +1478,13 @@ export function AccountPage() {
                           <button
                             type="submit"
                             className={`${btn.primaryCompact}`}
-                            disabled={busy}
+                            disabled={busy || !businessValidated}
                             aria-busy={savingSection === "aggregator"}
+                            title={
+                              !businessValidated
+                                ? t("validateAddressBeforeSave")
+                                : undefined
+                            }
                           >
                             {savingSection === "aggregator" ? (
                               <ButtonLoader label="Saving…" />

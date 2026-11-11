@@ -2,12 +2,8 @@
 
 import { useState } from "react";
 import useTranslation from "next-translate/useTranslation";
-import { Icon, btn } from "@/lib/ui";
-import {
-  formatRwf,
-  requestTransport as requestLocalTransport,
-  acceptTransportQuote,
-} from "@/lib/marketplaceStore";
+import { btn } from "@/lib/ui";
+import { formatRwf, acceptTransportQuote } from "@/lib/marketplaceStore";
 import { formatApiError } from "@/lib/apiError";
 import { isPersistedDeal } from "@/lib/mapApiDeal";
 import { ButtonLoader } from "@/components/ActionLoader";
@@ -16,7 +12,6 @@ import {
   useAcceptOfferedTransportMutation,
   useConfirmTransportMutation,
   useQuoteTransportMutation,
-  useRequestTransportMutation,
 } from "@/store/actions/deals";
 import type { Deal } from "@/lib/marketplaceTypes";
 
@@ -33,78 +28,9 @@ export function deliveryPriceNote(deal: Deal) {
     return `Delivery price ${formatRwf(deal.transportOfferedFee)}. Waiting for a deliverer to accept.`;
   }
   if (deal.status === "transport_open") {
-    return "No delivery price yet. A deliverer can propose one.";
+    return "Waiting for a deliverer to accept the delivery.";
   }
   return null;
-}
-
-export function RequestTransportForm({ deal }: { deal: Deal }) {
-  const { t } = useTranslation("orders");
-  const { t: tc } = useTranslation("common");
-  const [fee, setFee] = useState("");
-  const [error, setError] = useState("");
-  const [requestTransport, { isLoading }] = useRequestTransportMutation();
-
-  return (
-    <form
-      className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        if (isLoading) return;
-        setError("");
-        const trimmed = fee.trim();
-        const amount = trimmed === "" ? undefined : Number(trimmed);
-        if (amount != null && (!Number.isFinite(amount) || amount <= 0)) {
-          setError("Enter a delivery price above zero, or leave it blank.");
-          return;
-        }
-        try {
-          if (isPersistedDeal(deal.id)) {
-            await requestTransport({
-              id: deal.id,
-              body: amount != null ? { fee: amount } : {},
-            }).unwrap();
-          } else {
-            requestLocalTransport(deal.id, amount);
-          }
-        } catch (err) {
-          setError(formatApiError(err));
-        }
-      }}
-    >
-      <Field label={tc("deliveryPriceOptional")}>
-        <input
-          className={fieldClass}
-          type="number"
-          min={1}
-          inputMode="numeric"
-          placeholder={tc("deliveryPricePlaceholder")}
-          value={fee}
-          onChange={(event) => setFee(event.target.value)}
-          disabled={isLoading}
-          aria-label={tc("deliveryPriceAria")}
-        />
-      </Field>
-      <button type="submit" className={btn.sellCompact} disabled={isLoading}>
-        {isLoading ? (
-          <ButtonLoader label={tc("requesting")} />
-        ) : (
-          <>
-            {t("requestTransport")} <Icon name="truck" size={16} />
-          </>
-        )}
-      </button>
-      {error ? (
-        <p className="m-0 text-[0.6875rem] text-[#b42318] sm:col-span-2">
-          {error}
-        </p>
-      ) : (
-        <p className="m-0 text-[0.6875rem] text-soko-muted sm:col-span-2">
-          {tc("deliveryPriceHelp")}
-        </p>
-      )}
-    </form>
-  );
 }
 
 export function ConfirmTransportButton({ deal }: { deal: Deal }) {
@@ -187,7 +113,7 @@ export function DelivererJobActions({ deal }: { deal: Deal }) {
     return (
       <div>
         <p className="m-0 text-[0.6875rem] text-soko-ink">
-          Owner set the delivery price at <b>{formatRwf(offered)}</b>.
+          Delivery fee is <b>{formatRwf(offered)}</b>.
         </p>
         <button
           type="button"
