@@ -69,6 +69,12 @@ export const authService = {
     return rtkMutation<ClaimRoleResponse>(endpoints.claimRole, payload);
   },
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return rtkMutation<{ message: string }>(endpoints.forgotPassword, {
+      email,
+    });
+  },
+
   async resetPassword(
     token: string,
     payload: ResetPasswordRequest
