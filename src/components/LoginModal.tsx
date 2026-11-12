@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import useTranslation from "next-translate/useTranslation";
 import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
@@ -27,6 +28,7 @@ export function LoginModal({
   onNeedVerifyEmail,
 }: LoginModalProps) {
   const { t } = useTranslation("auth");
+  const router = useRouter();
   const { showError, dialog } = useAppDialog();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -148,6 +150,20 @@ export function LoginModal({
                 </button>
               </span>
             </label>
+
+            <div className="mb-3.5 flex justify-end">
+              <button
+                type="button"
+                className="border-0 bg-transparent p-0 text-[0.6875rem] font-bold text-soko-navy underline-offset-2 hover:underline disabled:opacity-50"
+                onClick={() => {
+                  onClose();
+                  router.push("/forgot-password");
+                }}
+                disabled={loading}
+              >
+                {t("login.forgotPassword")}
+              </button>
+            </div>
 
             <button
               type="submit"
